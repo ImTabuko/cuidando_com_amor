@@ -111,6 +111,25 @@ class PhotoService {
           radius: radius,
           backgroundImage: NetworkImage(photoUrl),
         );
+      } else if (photoUrl.startsWith('data:image/')) {
+        try {
+          final base64Data = photoUrl.split(',').last;
+          final bytes = UriData.parse(photoUrl).contentAsBytes();
+          photoWidget = CircleAvatar(
+            radius: radius,
+            backgroundImage: MemoryImage(bytes),
+          );
+        } catch (_) {
+          photoWidget = CircleAvatar(
+            radius: radius,
+            backgroundColor: Colors.grey[300],
+            child: Icon(
+              Icons.person,
+              size: radius,
+              color: Colors.grey[600],
+            ),
+          );
+        }
       } else {
         // Arquivo local
         photoWidget = CircleAvatar(

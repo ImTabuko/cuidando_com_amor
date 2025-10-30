@@ -880,6 +880,39 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           },
         ),
         SizedBox(height: _accessibilityService.defaultSpacing),
+        // CEP (também para cuidador)
+        Row(
+          children: [
+            Expanded(
+              flex: 4,
+              child: CustomTextField(
+                controller: _cepController,
+                label: 'CEP',
+                icon: Icons.pin,
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor, informe seu CEP';
+                  }
+                  return null;
+                },
+              ),
+            ),
+            SizedBox(width: _accessibilityService.defaultSpacing),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _searchCEP,
+                icon: Icon(Icons.search, size: 18),
+                label: Text('Buscar', style: TextStyle(fontSize: 11)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: EdgeInsets.all(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: _accessibilityService.defaultSpacing),
         // Rua
         CustomTextField(
           controller: _streetController,

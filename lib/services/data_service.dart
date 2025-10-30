@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
 import '../models/user.dart';
 import '../models/match.dart';
 
@@ -5,7 +8,8 @@ class DataService {
   static final DataService _instance = DataService._internal();
   factory DataService() => _instance;
   DataService._internal() {
-    _initializeSampleData();
+    // tenta carregar do backend; se falhar, usa mocks
+    _loadFromApi().catchError((_) => _initializeSampleData());
   }
 
   // Dados em memória
@@ -119,6 +123,59 @@ class DataService {
     ]);
   }
 
+  // ------------------- Integração simples com a API -------------------
+  static const String _baseUrl = 'https://cuidando-com-amor.onrender.com/api';
+
+  Future<void> _loadFromApi() async {
+    final res = await http.get(Uri.parse('$_baseUrl/users'));
+    if (res.statusCode != 200) throw Exception('Falha ao carregar');
+    final body = json.decode(res.body);
+    final List data = body is Map && body['items'] is List ? body['items'] : (body as List);
+    if (_users.isNotEmpty) return; // já populado
+    for (final item in data) {
+      final type = (item['userType'] ?? '').toString();
+      if (type == 'caregiver') {
+        _users.add(CaregiverUser(
+          id: (item['_id'] ?? item['id'] ?? '').toString(),
+          fullName: (item['fullName'] ?? 'Sem nome').toString(),
+          street: (item['street'] ?? '').toString(),
+          neighborhood: (item['neighborhood'] ?? '').toString(),
+          city: (item['city'] ?? '').toString(),
+          state: (item['state'] ?? '').toString(),
+          email: (item['email'] ?? 'no@email.com').toString(),
+          cpf: (item['cpf'] ?? '00000000000').toString(),
+          password: (item['password'] ?? '123456').toString(),
+          phone: (item['phone'] ?? '').toString(),
+          description: (item['description'] ?? '').toString(),
+          birthDate: DateTime.tryParse(item['birthDate']?.toString() ?? '') ?? DateTime(1990,1,1),
+          photoUrl: item['photoUrl']?.toString(),
+        ));
+      } else if (type == 'elderly') {
+        _users.add(ElderlyUser(
+          id: (item['_id'] ?? item['id'] ?? '').toString(),
+          fullName: (item['fullName'] ?? 'Sem nome').toString(),
+          street: (item['street'] ?? '').toString(),
+          neighborhood: (item['neighborhood'] ?? '').toString(),
+          city: (item['city'] ?? '').toString(),
+          state: (item['state'] ?? '').toString(),
+          cpf: (item['cpf'] ?? '00000000000').toString(),
+          email: item['email']?.toString(),
+          password: (item['password'] ?? '123456').toString(),
+          phone: (item['phone'] ?? '').toString(),
+          birthDate: DateTime.tryParse(item['birthDate']?.toString() ?? '') ?? DateTime(1950,1,1),
+          careNeeds: (item['careNeeds'] ?? '').toString(),
+          location: (item['location'] ?? '').toString(),
+          preferredTime: (item['preferredTime'] ?? '').toString(),
+          photoUrl: item['photoUrl']?.toString(),
+        ));
+      }
+    }
+    if (_users.isEmpty) {
+      // se vazio, usa mocks para não quebrar telas
+      _initializeSampleData();
+    }
+  }
+
   // Autenticação
   bool login(String emailOrPhone, String password) {
     try {
@@ -162,16 +219,27 @@ class DataService {
     String? photoUrl,
   }) {
     try {
-      // Verificar se email já existe (apenas se fornecido)
-      if (email != null && _users.any((user) => _getUserEmail(user) == email)) {
-        return false;
-      }
+      // envia para API; se falhar, cai no modo local abaixo
+      _postUserToApi({
+        'fullName': fullName,
+        'street': street,
+        'neighborhood': neighborhood,
+        'city': city,
+        'state': state,
+        'email': email,
+        'cpf': cpf,
+        'password': password,
+        'phone': phone,
+        'birthDate': birthDate.toIso8601String(),
+        'careNeeds': careNeeds,
+        'location': location,
+        'preferredTime': preferredTime,
+        'userType': 'elderly',
+        'photoUrl': photoUrl != null ? _encodeFileToDataUri(photoUrl) : null,
+      });
+    } catch (_) {}
 
-      // Verificar se telefone já existe
-      if (_users.any((user) => _getUserPhone(user) == phone)) {
-        return false;
-      }
-
+    try {
       final elderly = ElderlyUser(
         id: _generateId(),
         fullName: fullName,
@@ -179,7 +247,7 @@ class DataService {
         neighborhood: neighborhood,
         city: city,
         state: state,
-        email: email, // Pode ser null
+        email: email,
         cpf: cpf,
         password: password,
         phone: phone,
@@ -189,7 +257,6 @@ class DataService {
         preferredTime: preferredTime,
         photoUrl: photoUrl,
       );
-
       _users.add(elderly);
       _currentUser = elderly;
       return true;
@@ -213,11 +280,24 @@ class DataService {
     String? photoUrl,
   }) {
     try {
-      // Verificar se email já existe
-      if (_users.any((user) => _getUserEmail(user) == email)) {
-        return false;
-      }
+      _postUserToApi({
+        'fullName': fullName,
+        'street': street,
+        'neighborhood': neighborhood,
+        'city': city,
+        'state': state,
+        'email': email,
+        'cpf': cpf,
+        'password': password,
+        'phone': phone,
+        'birthDate': birthDate.toIso8601String(),
+        'description': description,
+        'userType': 'caregiver',
+        'photoUrl': photoUrl != null ? _encodeFileToDataUri(photoUrl) : null,
+      });
+    } catch (_) {}
 
+    try {
       final caregiver = CaregiverUser(
         id: _generateId(),
         fullName: fullName,
@@ -233,12 +313,31 @@ class DataService {
         description: description,
         photoUrl: photoUrl,
       );
-
       _users.add(caregiver);
       _currentUser = caregiver;
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  // util: envia usuário para API (ignora respostas/erros)
+  Future<void> _postUserToApi(Map<String, dynamic?> data) async {
+    final body = json.encode(data..removeWhere((k, v) => v == null));
+    await http
+        .post(Uri.parse('$_baseUrl/users'), headers: {'Content-Type': 'application/json; charset=utf-8'}, body: body)
+        .timeout(const Duration(seconds: 20));
+  }
+
+  // util: converte caminho de arquivo em data URI base64
+  String _encodeFileToDataUri(String path) {
+    try {
+      final file = File(path);
+      final bytes = file.readAsBytesSync();
+      final b64 = base64Encode(bytes);
+      return 'data:image/jpeg;base64,' + b64;
+    } catch (_) {
+      return path; // fallback
     }
   }
 
