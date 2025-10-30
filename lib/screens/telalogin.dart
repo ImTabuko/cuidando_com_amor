@@ -21,7 +21,29 @@ class _LoginScreenState extends State<LoginScreen> {
   final AccessibilityService _accessibilityService = AccessibilityService();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  bool _isLargeTextEnabled = false;
   bool _loginByPhone = false; // Nova opção de login por telefone
+
+  @override
+  void initState() {
+    super.initState();
+    _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
+    _accessibilityService.addListener(_updateState);
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _accessibilityService.removeListener(_updateState);
+    super.dispose();
+  }
+
+  void _updateState() {
+    setState(() {
+      _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
+    });
+  }
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
@@ -85,26 +107,24 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      floatingActionButton: const AccessibilityButton(heroTag: 'login_accessibility'),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: MediaQuery.of(context).size.width * 0.04,
-            vertical: MediaQuery.of(context).size.height * 0.02,
-          ),
+          padding: EdgeInsets.all(_accessibilityService.largeSpacing),
           child: Form(
             key: _formKey,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                SizedBox(height: _accessibilityService.largeSpacing * 2),
                 // Logo e título
                 Center(
                   child: AppLogo(
-                    width: MediaQuery.of(context).size.width * 0.65,
+                    width: _accessibilityService.isLargeTextEnabled ? 280 : 240,
                   ),
                 ),
-                SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                SizedBox(height: _accessibilityService.defaultSpacing),
                 
                 FittedBox(
                   fit: BoxFit.scaleDown,
@@ -114,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                SizedBox(height: MediaQuery.of(context).size.height * 0.01),
+                SizedBox(height: _accessibilityService.smallSpacing),
                 
                 FittedBox(
                   fit: BoxFit.scaleDown,
@@ -124,13 +144,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+                SizedBox(height: _accessibilityService.largeSpacing * 2),
 
                 // Toggle para escolher tipo de login
                 Card(
                   elevation: 2,
                   child: Padding(
-                    padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.04),
+                    padding: EdgeInsets.all(_accessibilityService.defaultSpacing),
                     child: Column(
                       children: [
                         FittedBox(
@@ -141,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             textAlign: TextAlign.center,
                           ),
                         ),
-                        SizedBox(height: MediaQuery.of(context).size.height * 0.01),
+                        SizedBox(height: _accessibilityService.smallSpacing),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
@@ -177,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                SizedBox(height: _accessibilityService.defaultSpacing),
 
                 // Campo de usuário/email/telefone
                 CustomTextField(
@@ -202,7 +222,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
-                SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                SizedBox(height: _accessibilityService.defaultSpacing),
 
                 // Campo de senha
                 CustomTextField(
@@ -220,7 +240,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
-                SizedBox(height: MediaQuery.of(context).size.height * 0.01),
+                SizedBox(height: _accessibilityService.smallSpacing),
                 
                 // Botão para mostrar/ocultar senha
                 Align(
@@ -244,7 +264,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                SizedBox(height: _accessibilityService.largeSpacing),
 
                 // Botão de login
                 ElevatedButton(
@@ -253,7 +273,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(
-                      vertical: MediaQuery.of(context).size.height * 0.02,
+                      vertical: _accessibilityService.defaultSpacing,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -276,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                 ),
-                SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                SizedBox(height: _accessibilityService.defaultSpacing),
 
                 // Link para registro
                 Row(
