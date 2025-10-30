@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 // Conectar MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://apiuser:senha123@cluster0.fykcpdl.mongodb.net/cuidando?retryWrites=true&w=majority';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://apiuser:senha123@cluster0.fykcpdl.mongodb.net/?retryWrites=true&w=majority';
 
 console.log('🔍 MONGODB_URI exists:', !!process.env.MONGODB_URI);
 console.log('🔍 Connecting to MongoDB...');
