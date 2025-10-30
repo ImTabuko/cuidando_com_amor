@@ -7,15 +7,18 @@ app.use(cors());
 app.use(express.json());
 
 // Conectar MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://apiuser:senha123@cluster0.fykcpdl.mongodb.net/?retryWrites=true&w=majority';
+// Inclui appName para clusters Atlas e mantém fallback apenas para teste
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://apiuser:senha123@cluster0.fykcpdl.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 
 console.log('🔍 MONGODB_URI exists:', !!process.env.MONGODB_URI);
 console.log('🔍 Connecting to MongoDB...');
 
 if (MONGODB_URI && MONGODB_URI.includes('mongodb')) {
   mongoose.connect(MONGODB_URI, {
+    dbName: 'cuidando',
     serverSelectionTimeoutMS: 30000, // 30 segundos
     socketTimeoutMS: 45000, // 45 segundos
+    family: 4, // força IPv4 (evita timeouts em ambientes serverless)
   })
     .then(() => console.log('✅ Conectado ao MongoDB'))
     .catch(err => {
