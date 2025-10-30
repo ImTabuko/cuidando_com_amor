@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 
-
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -144,4 +143,3 @@ app.listen(PORT, () => {
   console.log(`📍 Acesse: http://localhost:${PORT}`);
   console.log(`🔗 Health: http://localhost:${PORT}/api/health`);
 });
-
