@@ -9,10 +9,21 @@ app.use(express.json());
 // Conectar MongoDB
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://admin:admin@cluster0.example.mongodb.net/cuidando?retryWrites=true&w=majority';
 
+console.log('🔍 MONGODB_URI exists:', !!process.env.MONGODB_URI);
+console.log('🔍 Connecting to MongoDB...');
+
 if (MONGODB_URI && MONGODB_URI.includes('mongodb')) {
-  mongoose.connect(MONGODB_URI)
+  mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 30000, // 30 segundos
+    socketTimeoutMS: 45000, // 45 segundos
+  })
     .then(() => console.log('✅ Conectado ao MongoDB'))
-    .catch(err => console.log('❌ Erro MongoDB:', err.message));
+    .catch(err => {
+      console.log('❌ Erro MongoDB:', err.message);
+      console.log('❌ Full error:', err);
+    });
+} else {
+  console.log('❌ MONGODB_URI inválida ou não definida');
 }
 
 // Schema de Usuário
