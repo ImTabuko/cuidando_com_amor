@@ -203,6 +203,23 @@ app.post('/api/seed', async (req, res) => {
   }
 });
 
+// Alias GET para facilitar teste no navegador
+app.get('/api/seed', async (req, res) => {
+  try {
+    const key = req.query.key;
+    if (key !== (process.env.SEED_KEY || 'seed')) return res.status(403).json({ error: 'Forbidden' });
+    const count = await User.countDocuments();
+    if (count > 0) return res.json({ message: 'Já populado' });
+    await User.insertMany([
+      { fullName: 'João da Silva', email: 'joao@example.com', password: await bcrypt.hash('123456', 10), city: 'São Paulo', userType: 'elderly' },
+      { fullName: 'Maria Souza', email: 'maria@example.com', password: await bcrypt.hash('123456', 10), city: 'Rio de Janeiro', userType: 'caregiver' }
+    ]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // GET - Matches
 app.get('/api/matches', async (req, res) => {
   try {

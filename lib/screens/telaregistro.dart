@@ -443,7 +443,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         Row(
           children: [
             Expanded(
-              flex: 4,
+              flex: 3,
               child: CustomTextField(
                 controller: _cepController,
                 label: 'CEP',
@@ -459,13 +459,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             ),
             SizedBox(width: _accessibilityService.defaultSpacing),
             Expanded(
+              flex: 2,
               child: ElevatedButton.icon(
                 onPressed: _searchCEP,
                 icon: Icon(Icons.search, size: 18),
-                label: Text('Buscar', style: TextStyle(fontSize: 11)),
+                label: Text('Buscar', style: TextStyle(fontSize: 14)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  padding: EdgeInsets.all(12),
+                  minimumSize: const Size.fromHeight(48),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 ),
               ),
             ),
@@ -884,7 +886,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         Row(
           children: [
             Expanded(
-              flex: 4,
+              flex: 3,
               child: CustomTextField(
                 controller: _cepController,
                 label: 'CEP',
@@ -900,13 +902,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             ),
             SizedBox(width: _accessibilityService.defaultSpacing),
             Expanded(
+              flex: 2,
               child: ElevatedButton.icon(
                 onPressed: _searchCEP,
                 icon: Icon(Icons.search, size: 18),
-                label: Text('Buscar', style: TextStyle(fontSize: 11)),
+                label: Text('Buscar', style: TextStyle(fontSize: 14)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  padding: EdgeInsets.all(12),
+                  minimumSize: const Size.fromHeight(48),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 ),
               ),
             ),
