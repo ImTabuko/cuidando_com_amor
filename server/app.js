@@ -241,6 +241,22 @@ app.post('/api/matches', async (req, res) => {
   }
 });
 
+// PUT - Atualizar status do match (aceitar/rejeitar)
+app.put('/api/matches/:id', async (req, res) => {
+  try {
+    const { status } = req.body;
+    const match = await Match.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+    if (!match) return res.status(404).json({ error: 'Match não encontrado' });
+    res.json(match);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server rodando na porta ${PORT}`);

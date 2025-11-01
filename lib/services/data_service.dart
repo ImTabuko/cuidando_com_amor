@@ -322,7 +322,7 @@ class DataService {
   }
 
   // util: envia usuário para API (ignora respostas/erros)
-  Future<void> _postUserToApi(Map<String, dynamic?> data) async {
+  Future<void> _postUserToApi(Map<String, dynamic> data) async {
     final body = json.encode(data..removeWhere((k, v) => v == null));
     await http
         .post(Uri.parse('$_baseUrl/users'), headers: {'Content-Type': 'application/json; charset=utf-8'}, body: body)
@@ -335,7 +335,7 @@ class DataService {
       final file = File(path);
       final bytes = file.readAsBytesSync();
       final b64 = base64Encode(bytes);
-      return 'data:image/jpeg;base64,' + b64;
+      return 'data:image/jpeg;base64,$b64';
     } catch (_) {
       return path; // fallback
     }
@@ -435,28 +435,60 @@ class DataService {
     return match;
   }
 
-  void acceptMatch(String matchId) {
-    final match = _matches.firstWhere((m) => m.matchId == matchId);
-    final index = _matches.indexOf(match);
-    _matches[index] = Match(
-      matchId: match.matchId,
-      elderlyId: match.elderlyId,
-      caregiverId: match.caregiverId,
-      status: MatchStatus.accepted,
-      dataMatch: match.dataMatch,
-    );
+  Future<void> acceptMatch(String matchId) async {
+    try {
+      // Atualizar localmente
+      final match = _matches.firstWhere((m) => m.matchId == matchId);
+      final index = _matches.indexOf(match);
+      _matches[index] = Match(
+        matchId: match.matchId,
+        elderlyId: match.elderlyId,
+        caregiverId: match.caregiverId,
+        status: MatchStatus.accepted,
+        dataMatch: match.dataMatch,
+      );
+
+      // Tentar atualizar no backend
+      try {
+        await http.put(
+          Uri.parse('$_baseUrl/matches/$matchId'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({'status': 'accepted'}),
+        ).timeout(const Duration(seconds: 10));
+      } catch (_) {
+        // Se falhar no backend, pelo menos mantém local
+      }
+    } catch (e) {
+      throw Exception('Erro ao aceitar match: $e');
+    }
   }
 
-  void rejectMatch(String matchId) {
-    final match = _matches.firstWhere((m) => m.matchId == matchId);
-    final index = _matches.indexOf(match);
-    _matches[index] = Match(
-      matchId: match.matchId,
-      elderlyId: match.elderlyId,
-      caregiverId: match.caregiverId,
-      status: MatchStatus.rejected,
-      dataMatch: match.dataMatch,
-    );
+  Future<void> rejectMatch(String matchId) async {
+    try {
+      // Atualizar localmente
+      final match = _matches.firstWhere((m) => m.matchId == matchId);
+      final index = _matches.indexOf(match);
+      _matches[index] = Match(
+        matchId: match.matchId,
+        elderlyId: match.elderlyId,
+        caregiverId: match.caregiverId,
+        status: MatchStatus.rejected,
+        dataMatch: match.dataMatch,
+      );
+
+      // Tentar atualizar no backend
+      try {
+        await http.put(
+          Uri.parse('$_baseUrl/matches/$matchId'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({'status': 'rejected'}),
+        ).timeout(const Duration(seconds: 10));
+      } catch (_) {
+        // Se falhar no backend, pelo menos mantém local
+      }
+    } catch (e) {
+      throw Exception('Erro ao rejeitar match: $e');
+    }
   }
 
   User? getUserById(String userId) {
