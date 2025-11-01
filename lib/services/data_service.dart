@@ -124,7 +124,7 @@ class DataService {
   }
 
   // ------------------- Integração simples com a API -------------------
-  static const String _baseUrl = 'https://cuidando-com-amor.onrender.com/api';
+  static const String _baseUrl = 'https://cuidando-com-amor.vercel.app/api';
 
   Future<void> _loadFromApi() async {
     final res = await http.get(Uri.parse('$_baseUrl/users'));
