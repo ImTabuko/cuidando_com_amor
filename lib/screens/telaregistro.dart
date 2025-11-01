@@ -8,7 +8,6 @@ import '../services/photo_service.dart';
 import '../services/ibge_service.dart';
 import '../services/cep_service.dart';
 import '../widgets/accessible_text.dart';
-import '../widgets/accessibility_button.dart';
 import '../utils/app_colors.dart';
 
 class RegistrationScreen extends StatefulWidget {

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/accessibility_service.dart';
 import '../widgets/accessible_text.dart';
-import '../widgets/accessibility_button.dart';
 import '../utils/app_colors.dart';
 import '../widgets/app_logo.dart';
 
@@ -47,7 +46,6 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primary,
-      floatingActionButton: const AccessibilityButton(heroTag: 'splash_accessibility'),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

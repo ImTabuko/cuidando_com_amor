@@ -4,7 +4,6 @@ import '../models/match_service.dart';
 import '../models/auth_service.dart';
 import '../services/accessibility_service.dart';
 import '../widgets/accessible_text.dart';
-import '../widgets/accessibility_button.dart';
 
 class CaregiverProfileScreen extends StatefulWidget {
   final CaregiverUser caregiver;
@@ -47,9 +46,6 @@ class _CaregiverProfileScreenState extends State<CaregiverProfileScreen> {
       appBar: AppBar(
         title: TitleText('Perfil do Cuidador', color: Colors.white),
         backgroundColor: Colors.blue[800],
-        actions: [
-          AccessibilityAppBarButton(),
-        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

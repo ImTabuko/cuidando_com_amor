@@ -4,7 +4,6 @@ import '../models/auth_service.dart';
 import '../services/accessibility_service.dart';
 import '../services/photo_service.dart';
 import '../widgets/accessible_text.dart';
-import '../widgets/accessibility_button.dart';
 import 'available_caregivers_screen.dart';
 import 'available_elderlies_screen.dart';
 import 'matches_screen.dart';

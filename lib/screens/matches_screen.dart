@@ -5,7 +5,6 @@ import '../models/match_service.dart';
 import '../models/auth_service.dart';
 import '../services/accessibility_service.dart';
 import '../widgets/accessible_text.dart';
-import '../widgets/accessibility_button.dart';
 import 'elderly_profile_screen.dart';
 import 'caregiver_profile_screen.dart';
 import '../utils/app_colors.dart';
@@ -72,9 +71,6 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
       appBar: AppBar(
         title: TitleText('Meus Matches', color: Colors.white),
         backgroundColor: AppColors.primary,
-        actions: [
-          AccessibilityAppBarButton(),
-        ],
         bottom: TabBar(
           controller: _tabController,
           labelStyle: TextStyle(

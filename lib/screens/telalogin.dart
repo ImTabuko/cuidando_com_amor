@@ -3,7 +3,6 @@ import '../models/auth_service.dart';
 import '../widgets/custom_text_field.dart';
 import '../services/accessibility_service.dart';
 import '../widgets/accessible_text.dart';
-import '../widgets/accessibility_button.dart';
 import '../utils/app_colors.dart';
 import '../widgets/app_logo.dart';
 
@@ -107,7 +106,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      floatingActionButton: const AccessibilityButton(heroTag: 'login_accessibility'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(_accessibilityService.largeSpacing),
