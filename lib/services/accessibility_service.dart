@@ -20,16 +20,29 @@ class AccessibilityService {
   bool get hapticFeedbackEnabled => _hapticFeedbackEnabled;
   bool get screenReaderEnabled => _screenReaderEnabled;
 
-  // Detectar configurações do sistema
+  // Detectar configurações do sistema (apenas leitor de tela e animações)
+  // Não sobrescreve configurações manuais de texto grande e alto contraste
   void updateFromMediaQuery(MediaQueryData mediaQuery) {
-    final textScaleFactor = mediaQuery.textScaleFactor;
-    final highContrast = mediaQuery.highContrast;
-    
-    _isLargeTextEnabled = textScaleFactor > 1.0;
-    _isHighContrastEnabled = highContrast;
     _reduceMotionEnabled = mediaQuery.disableAnimations;
     _screenReaderEnabled = mediaQuery.accessibleNavigation;
     
+    // Apenas atualizar texto grande e alto contraste se o usuário não configurou manualmente
+    // (isso é detectado se ainda está no valor padrão)
+    if (!_isLargeTextEnabled && !_isHighContrastEnabled) {
+      final textScaleFactor = mediaQuery.textScaleFactor;
+      final highContrast = mediaQuery.highContrast;
+      
+      _isLargeTextEnabled = textScaleFactor > 1.0;
+      _isHighContrastEnabled = highContrast;
+    }
+    
+    _notifyListeners();
+  }
+  
+  // Método para atualizar apenas leitor de tela e animações (sem afetar configurações manuais)
+  void updateSystemOnly(MediaQueryData mediaQuery) {
+    _reduceMotionEnabled = mediaQuery.disableAnimations;
+    _screenReaderEnabled = mediaQuery.accessibleNavigation;
     _notifyListeners();
   }
 

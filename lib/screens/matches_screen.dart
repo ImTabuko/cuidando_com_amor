@@ -236,14 +236,16 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
     
     final isElderly = currentUser is ElderlyUser;
     
-    // Determinar se o usuário atual criou o match ou recebeu
-    final isMatchCreator = (isElderly && match.elderlyId == currentUser.id) ||
-                          (!isElderly && match.caregiverId == currentUser.id);
+    // Determinar se o usuário atual pode aceitar/rejeitar o match
+    // Lógica: O match é criado por um cuidador oferecendo cuidados
+    // Então o idoso (elderlyId) é quem pode aceitar/rejeitar
+    // O cuidador (caregiverId) apenas aguarda a resposta
+    final canAcceptMatch = isElderly && match.elderlyId == currentUser.id;
     
     // Para matches pendentes
     if (match.status == MatchStatus.pending) {
-      if (isMatchCreator) {
-        // Se o usuário criou o match, mostrar apenas "Ver Perfil" e status
+      if (!canAcceptMatch) {
+        // Se o usuário não pode aceitar (criou o match), mostrar apenas "Ver Perfil" e status
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -276,7 +278,7 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
           ],
         );
       } else {
-        // Se o usuário recebeu o match, mostrar botões de aceitar/rejeitar
+        // Se o usuário pode aceitar/rejeitar (recebeu o match), mostrar botões
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

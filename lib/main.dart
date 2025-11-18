@@ -27,15 +27,22 @@ class MainApp extends StatelessWidget {
       // Configurações de acessibilidade
       builder: (context, child) {
         final mediaQuery = MediaQuery.of(context);
-        // Atualizar accessibility service apenas uma vez
-        AccessibilityService().updateFromMediaQuery(mediaQuery);
+        final accessibilityService = AccessibilityService();
+        
+        // Atualizar apenas leitor de tela e animações (não afeta configurações manuais)
+        accessibilityService.updateSystemOnly(mediaQuery);
+        
+        // Aplicar escala de texto manual OU do sistema (o que for maior)
+        final userScale = accessibilityService.isLargeTextEnabled ? 1.3 : 1.0;
+        final systemScale = mediaQuery.textScaleFactor;
+        final finalScale = userScale > systemScale ? userScale : systemScale;
         
         return MediaQuery(
-          // Respeitar configurações de acessibilidade do sistema
+          // Respeitar configurações de acessibilidade do sistema E manuais
           data: mediaQuery.copyWith(
-            textScaleFactor: mediaQuery.textScaleFactor.clamp(1.0, 2.0),
+            textScaleFactor: finalScale.clamp(1.0, 2.5),
             boldText: mediaQuery.boldText,
-            highContrast: mediaQuery.highContrast,
+            highContrast: accessibilityService.isHighContrastEnabled || mediaQuery.highContrast,
           ),
           child: Semantics(
             // Configurações globais de Semantics

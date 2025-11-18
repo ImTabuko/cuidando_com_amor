@@ -33,8 +33,8 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    _accessibilityService.updateFromMediaQuery(mediaQuery);
+    // Não atualizar automaticamente - usar configurações manuais do usuário
+    // _accessibilityService.updateFromMediaQuery(mediaQuery);
 
     return Scaffold(
       appBar: AppBar(
@@ -127,36 +127,41 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
           SizedBox(height: _accessibilityService.defaultSpacing),
           
           // Informações do sistema
-          AccessibleCard(
-            semanticLabel: 'Informações de acessibilidade do sistema',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                BodyText(
-                  'Fator de Escala de Texto: ${mediaQuery.textScaleFactor.toStringAsFixed(2)}',
+          Builder(
+            builder: (context) {
+              final mediaQuery = MediaQuery.of(context);
+              return AccessibleCard(
+                semanticLabel: 'Informações de acessibilidade do sistema',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    BodyText(
+                      'Fator de Escala de Texto: ${mediaQuery.textScaleFactor.toStringAsFixed(2)}',
+                    ),
+                    SizedBox(height: _accessibilityService.smallSpacing),
+                    BodyText(
+                      'Texto em Negrito: ${mediaQuery.boldText ? "Ativado" : "Desativado"}',
+                    ),
+                    SizedBox(height: _accessibilityService.smallSpacing),
+                    BodyText(
+                      'Alto Contraste: ${_accessibilityService.isHighContrastEnabled || mediaQuery.highContrast ? "Ativado" : "Desativado"}',
+                    ),
+                    SizedBox(height: _accessibilityService.smallSpacing),
+                    BodyText(
+                      'Animações Reduzidas: ${mediaQuery.disableAnimations ? "Ativado" : "Desativado"}',
+                    ),
+                    SizedBox(height: _accessibilityService.smallSpacing),
+                    BodyText(
+                      'Leitor de Tela: ${mediaQuery.accessibleNavigation ? "Ativado" : "Desativado"}',
+                    ),
+                    SizedBox(height: _accessibilityService.smallSpacing),
+                    BodyText(
+                      'Feedback Tátil: ${_accessibilityService.hapticFeedbackEnabled ? "Ativado" : "Desativado"}',
+                    ),
+                  ],
                 ),
-                SizedBox(height: _accessibilityService.smallSpacing),
-                BodyText(
-                  'Texto em Negrito: ${mediaQuery.boldText ? "Ativado" : "Desativado"}',
-                ),
-                SizedBox(height: _accessibilityService.smallSpacing),
-                BodyText(
-                  'Alto Contraste: ${mediaQuery.highContrast ? "Ativado" : "Desativado"}',
-                ),
-                SizedBox(height: _accessibilityService.smallSpacing),
-                BodyText(
-                  'Animações Reduzidas: ${mediaQuery.disableAnimations ? "Ativado" : "Desativado"}',
-                ),
-                SizedBox(height: _accessibilityService.smallSpacing),
-                BodyText(
-                  'Leitor de Tela: ${mediaQuery.accessibleNavigation ? "Ativado" : "Desativado"}',
-                ),
-                SizedBox(height: _accessibilityService.smallSpacing),
-                BodyText(
-                  'Feedback Tátil: ${_accessibilityService.hapticFeedbackEnabled ? "Ativado" : "Desativado"}',
-                ),
-              ],
-            ),
+              );
+            },
           ),
 
           SizedBox(height: _accessibilityService.largeSpacing),

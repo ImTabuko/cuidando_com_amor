@@ -35,14 +35,15 @@ class AccessibleText extends StatelessWidget {
     final accessibilityService = AccessibilityService();
     final mediaQuery = MediaQuery.of(context);
     
-    // Não atualizar a cada build - pode travar
-    // accessibilityService.updateFromMediaQuery(mediaQuery);
-    
     final effectiveColor = accessibilityService.getHighContrastColor(
       color ?? Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black,
     );
     
-    final fontSize = _getFontSize(accessibilityService) * mediaQuery.textScaleFactor;
+    // Usar configuração manual do usuário OU escala do sistema (o que for maior)
+    final userScale = accessibilityService.isLargeTextEnabled ? 1.3 : 1.0;
+    final systemScale = mediaQuery.textScaleFactor;
+    final finalScale = userScale > systemScale ? userScale : systemScale;
+    final fontSize = _getFontSize(accessibilityService) * finalScale;
     
     return Semantics(
       label: text,

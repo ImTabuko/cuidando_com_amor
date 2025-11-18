@@ -25,7 +25,7 @@ class DataService {
 
 
   // ------------------- Integração simples com a API -------------------
-  static const String _baseUrl = 'https://cuidando-com-amor.vercel.app/api';
+  static const String _baseUrl = 'https://cuidando-com-amor-ssud.vercel.app/api';
 
   // Inicializar carregando dados do servidor
   Future<void> initialize() async {
