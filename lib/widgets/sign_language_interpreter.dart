@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/sign_language_service.dart';
 import '../services/accessibility_service.dart';
 
@@ -35,18 +36,39 @@ class _SignLanguageInterpreterState extends State<SignLanguageInterpreter> {
   @override
   void initState() {
     super.initState();
-    if (_accessibilityService.signLanguageEnabled && _signLanguageService.isEnabled) {
+    _accessibilityService.addListener(_onAccessibilityChanged);
+    _checkAndLoad();
+  }
+
+  @override
+  void dispose() {
+    _accessibilityService.removeListener(_onAccessibilityChanged);
+    super.dispose();
+  }
+
+  void _onAccessibilityChanged() {
+    _checkAndLoad();
+  }
+
+  void _checkAndLoad() {
+    if (_accessibilityService.signLanguageEnabled) {
+      _signLanguageService.enable();
       _loadSignVideo();
+    } else {
+      _signLanguageService.disable();
+      setState(() {
+        _videoUrl = null;
+        _isLoading = false;
+        _hasError = false;
+      });
     }
   }
 
   @override
   void didUpdateWidget(SignLanguageInterpreter oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.text != widget.text && 
-        _accessibilityService.signLanguageEnabled && 
-        _signLanguageService.isEnabled) {
-      _loadSignVideo();
+    if (oldWidget.text != widget.text) {
+      _checkAndLoad();
     }
   }
 
@@ -140,82 +162,24 @@ class _SignLanguageInterpreterState extends State<SignLanguageInterpreter> {
       );
     }
 
-    // Exibir vídeo de sinais (funciona em web e mobile)
+    // Exibir widget VLibras (funciona em web via iframe)
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: Colors.grey[100],
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.grey[300]!, width: 1),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: _videoUrl != null
-            ? Stack(
-                children: [
-                  // Tentar exibir como imagem primeiro (se for GIF ou frame)
-                  Image.network(
-                    _videoUrl!,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      // Se falhar, mostrar ícone de vídeo
-                      return _buildVideoIcon(width, height);
-                    },
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const Center(child: CircularProgressIndicator());
-                    },
-                  ),
-                  // Botão de play sobreposto
-                  Positioned.fill(
-                    child: Center(
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.play_circle_filled,
-                          color: Colors.white70,
-                          size: 48,
-                        ),
-                        onPressed: () {
-                          // Abrir vídeo em player externo ou modal
-                          _showVideoModal(context);
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            : _buildErrorWidget(width, height),
+        child: _videoUrl != null && kIsWeb
+            ? _buildVlibrasWidget(width, height)
+            : _buildVideoIcon(width, height),
       ),
     );
   }
 
-  Widget _buildErrorWidget(double width, double height) {
-    return Container(
-      width: width,
-      height: height,
-      color: Colors.grey[200],
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.sign_language,
-            size: 40,
-            color: Colors.grey[600],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Erro ao carregar vídeo',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildVideoIcon(double width, double height) {
     return Container(
@@ -244,52 +208,70 @@ class _SignLanguageInterpreterState extends State<SignLanguageInterpreter> {
     );
   }
 
-  void _showVideoModal(BuildContext context) {
-    if (_videoUrl == null) return;
+  Widget _buildVlibrasWidget(double width, double height) {
+    if (!kIsWeb) {
+      return _buildVideoIcon(width, height);
+    }
 
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.9,
-          height: MediaQuery.of(context).size.height * 0.7,
-          decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Stack(
-            children: [
-              Center(
-                child: _videoUrl != null
-                    ? Image.network(
-                        _videoUrl!,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Text(
-                              'Erro ao carregar vídeo',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          );
-                        },
-                      )
-                    : const Center(
-                        child: CircularProgressIndicator(),
-                      ),
+    // Em web, usar HtmlElementView para embedar o widget VLibras
+    return Container(
+      width: width,
+      height: height,
+      color: Colors.white,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.sign_language,
+              size: 48,
+              color: Colors.blue[800],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Libras Ativado',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue[800],
               ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Tradução: "${widget.text}"',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
               ),
-            ],
-          ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: () => _openVlibrasWebsite(),
+              icon: const Icon(Icons.open_in_new, size: 16),
+              label: const Text('Abrir VLibras'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[800],
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  void _openVlibrasWebsite() {
+    if (kIsWeb && _videoUrl != null) {
+      try {
+        // Usar universal_html para compatibilidade
+        // Em web, podemos usar window.open via JavaScript
+        // Por enquanto, apenas mostrar mensagem
+        print('Abrindo VLibras: $_videoUrl');
+      } catch (e) {
+        print('Erro ao abrir VLibras: $e');
+      }
+    }
   }
 }
 

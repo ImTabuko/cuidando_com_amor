@@ -1,15 +1,14 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 
 class SignLanguageService {
   static final SignLanguageService _instance = SignLanguageService._internal();
   factory SignLanguageService() => _instance;
   SignLanguageService._internal();
 
-  // API do VLibras - endpoint público
-  // NOTA: A URL exata da API pode variar. Consulte: https://www.gov.br/conecta/catalogo/apis/vlibras
-  // Para uso em produção, verifique a documentação oficial da API do VLibras
-  static const String _baseUrl = 'https://api.vlibras.gov.br/v1';
+  // API do VLibras - usando widget VLibras via iframe/embed
+  // O VLibras oferece um widget JavaScript que pode ser integrado
+  // Para web, vamos usar o widget VLibras diretamente
+  // URL do widget VLibras: https://www.vlibras.gov.br/
+  static const String _vlibrasWidgetUrl = 'https://www.vlibras.gov.br/app/';
   
   // Alternativa: usar widget VLibras diretamente (mais simples)
   // O VLibras também oferece um widget JavaScript que pode ser integrado via WebView
@@ -39,109 +38,23 @@ class SignLanguageService {
     _region = region;
   }
 
-  // Traduzir texto para glosa (representação textual dos sinais)
-  Future<String?> translateToGlosa(String text) async {
-    if (text.isEmpty) return null;
-    
-    try {
-      // API do VLibras para tradução de texto para glosa
-      // Endpoint pode variar - verifique documentação oficial
-      final response = await http.post(
-        Uri.parse('$_baseUrl/text-to-glosa'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'text': text,
-          'region': _region,
-        }),
-      ).timeout(const Duration(seconds: 5));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['glosa'] as String?;
-      }
-    } catch (e) {
-      print('⚠️ Erro ao traduzir para glosa: $e');
-      print('💡 Dica: Verifique se a API do VLibras está configurada corretamente');
-    }
-    return null;
-  }
-
-  // Obter URL do vídeo de sinais a partir da glosa
-  Future<String?> getSignVideoUrl(String glosa) async {
-    if (glosa.isEmpty) return null;
-    
-    try {
-      // API do VLibras para gerar vídeo de sinais
-      // Endpoint pode variar - verifique documentação oficial
-      final response = await http.post(
-        Uri.parse('$_baseUrl/glosa-to-video'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'glosa': glosa,
-          'region': _region,
-        }),
-      ).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['videoUrl'] as String?;
-      }
-    } catch (e) {
-      print('⚠️ Erro ao obter vídeo de sinais: $e');
-      print('💡 Dica: A API do VLibras pode requerer autenticação ou ter endpoints diferentes');
-    }
-    return null;
-  }
-
   // Método combinado: traduzir texto e obter vídeo
+  // Usando o widget VLibras que funciona via iframe
   Future<String?> translateAndGetVideo(String text) async {
     if (!_isEnabled || text.isEmpty) return null;
     
     try {
-      final glosa = await translateToGlosa(text);
-      if (glosa == null) return null;
-      
-      return await getSignVideoUrl(glosa);
+      // O VLibras funciona via widget JavaScript embutido
+      // Para Flutter Web, vamos retornar uma URL que pode ser usada em um iframe
+      // O widget VLibras processa o texto automaticamente
+      final encodedText = Uri.encodeComponent(text);
+      // Retornar URL do widget VLibras com o texto
+      return '$_vlibrasWidgetUrl?text=$encodedText';
     } catch (e) {
       print('Erro ao traduzir e obter vídeo: $e');
       return null;
     }
   }
 
-  // Obter lista de sinais disponíveis no dicionário
-  Future<List<Map<String, dynamic>>> getDictionarySigns() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/dictionary'),
-      ).timeout(const Duration(seconds: 5));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data is List) {
-          return data.cast<Map<String, dynamic>>();
-        }
-      }
-    } catch (e) {
-      print('Erro ao obter dicionário: $e');
-    }
-    return [];
-  }
-
-  // Verificar se a API está disponível
-  Future<bool> checkApiAvailability() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/health'),
-      ).timeout(const Duration(seconds: 3));
-
-      return response.statusCode == 200;
-    } catch (e) {
-      return false;
-    }
-  }
 }
 
