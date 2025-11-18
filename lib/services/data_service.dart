@@ -1,137 +1,62 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/user.dart';
 import '../models/match.dart';
 
 class DataService {
   static final DataService _instance = DataService._internal();
   factory DataService() => _instance;
-  DataService._internal() {
-    // tenta carregar do backend; se falhar, usa mocks
-    _loadFromApi().catchError((_) => _initializeSampleData());
-  }
+  DataService._internal();
 
   // Dados em memória
   final List<User> _users = [];
   final List<Match> _matches = [];
   User? _currentUser;
+  bool _isInitialized = false;
 
   // Getters
   User? get currentUser => _currentUser;
   List<User> get allUsers => List.unmodifiable(_users);
   List<Match> get allMatches => List.unmodifiable(_matches);
 
-  // Inicializar dados de exemplo
-  void _initializeSampleData() {
-    // Cuidadores de exemplo
-    _users.addAll([
-      CaregiverUser(
-        id: 'caregiver1',
-        fullName: 'Maria Silva',
-        street: 'Rua das Flores, 123',
-        neighborhood: 'Centro',
-        city: 'São Paulo',
-        state: 'SP',
-        email: 'maria@email.com',
-        cpf: '12345678901',
-        password: '123456',
-        phone: '(11) 99999-1111',
-        description: 'Enfermeira, Técnico em Gerontologia',
-        birthDate: DateTime(1985, 3, 15),
-      ),
-      CaregiverUser(
-        id: 'caregiver2',
-        fullName: 'João Santos',
-        street: 'Av. Copacabana, 456',
-        neighborhood: 'Copacabana',
-        city: 'Rio de Janeiro',
-        state: 'RJ',
-        email: 'joao@email.com',
-        cpf: '12345678902',
-        password: '123456',
-        phone: '(21) 99999-2222',
-        birthDate: DateTime(1990, 7, 22),
-        description: 'Técnico em Enfermagem, Fisioterapeuta',
-      ),
-      CaregiverUser(
-        id: 'caregiver3',
-        fullName: 'Ana Costa',
-        street: 'Rua dos Inconfidentes, 789',
-        neighborhood: 'Savassi',
-        city: 'Belo Horizonte',
-        state: 'MG',
-        email: 'ana@email.com',
-        cpf: '12345678903',
-        password: '123456',
-        phone: '(31) 99999-3333',
-        birthDate: DateTime(1988, 11, 8),
-        description: 'Cuidador(a) de Idosos, Experiência prática (sem formação formal)',
-      ),
-    ]);
-
-    // Idosos de exemplo
-    _users.addAll([
-      ElderlyUser(
-        id: 'elderly1',
-        fullName: 'José Oliveira',
-        street: 'Av. Paulista, 1000',
-        neighborhood: 'Bela Vista',
-        city: 'São Paulo',
-        state: 'SP',
-        cpf: '98765432101',
-        email: 'jose@email.com', // Com email
-        password: '123456',
-        phone: '(11) 88888-1111',
-        birthDate: DateTime(1950, 5, 10),
-        careNeeds: 'Medicação e controle de remédios, Acompanhamento médico',
-        location: 'Casa',
-        preferredTime: 'Manhã',
-      ),
-      ElderlyUser(
-        id: 'elderly2',
-        fullName: 'Rosa Fernandes',
-        street: 'Rua Atlântica, 300',
-        neighborhood: 'Copacabana',
-        city: 'Rio de Janeiro',
-        state: 'RJ',
-        cpf: '98765432102',
-        // email: null, // Sem email - login apenas por telefone
-        password: '123456',
-        phone: '(21) 88888-2222',
-        birthDate: DateTime(1945, 9, 18),
-        careNeeds: 'Fisioterapia domiciliar, Auxílio na locomoção',
-        location: 'Casa',
-        preferredTime: 'Tarde',
-      ),
-      ElderlyUser(
-        id: 'elderly3',
-        fullName: 'Carlos Mendes',
-        street: 'Av. Afonso Pena, 500',
-        neighborhood: 'Centro',
-        city: 'Belo Horizonte',
-        state: 'MG',
-        cpf: '98765432103',
-        // email: null, // Sem email - login apenas por telefone
-        password: '123456',
-        phone: '(31) 88888-3333',
-        birthDate: DateTime(1955, 12, 3),
-        careNeeds: 'Companhia e conversa, Cuidados domésticos básicos',
-        location: 'Hospital',
-        preferredTime: 'Noite',
-      ),
-    ]);
-  }
 
   // ------------------- Integração simples com a API -------------------
   static const String _baseUrl = 'https://cuidando-com-amor.vercel.app/api';
 
-  Future<void> _loadFromApi() async {
-    final res = await http.get(Uri.parse('$_baseUrl/users'));
-    if (res.statusCode != 200) throw Exception('Falha ao carregar');
+  // Inicializar carregando dados do servidor
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+    try {
+      await _loadUsersFromApi();
+      await _loadMatchesFromApi();
+    } catch (e) {
+      // Continua mesmo se falhar - modo offline
+      print('Erro na inicialização: $e');
+    }
+    _isInitialized = true;
+  }
+
+  Future<void> _loadUsersFromApi() async {
+    try {
+      final res = await http.get(Uri.parse('$_baseUrl/users')).timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          print('⚠️ Timeout ao carregar usuários');
+          throw TimeoutException('Timeout', const Duration(seconds: 3));
+        },
+      );
+      if (res.statusCode != 200) {
+        print('⚠️ Servidor retornou status ${res.statusCode}');
+        return; // Continua sem dados do servidor
+      }
     final body = json.decode(res.body);
     final List data = body is Map && body['items'] is List ? body['items'] : (body as List);
-    if (_users.isNotEmpty) return; // já populado
+      
+      _users.clear(); // Limpar antes de carregar
     for (final item in data) {
       final type = (item['userType'] ?? '').toString();
       if (type == 'caregiver') {
@@ -170,34 +95,125 @@ class DataService {
         ));
       }
     }
-    if (_users.isEmpty) {
-      // se vazio, usa mocks para não quebrar telas
-      _initializeSampleData();
+    } catch (e) {
+      // Se falhar, continua sem dados do servidor (modo offline)
+      print('Erro ao carregar usuários: $e');
+      // Não lança exceção - permite que o app continue funcionando
+    }
+  }
+
+  Future<void> _loadMatchesFromApi() async {
+    await reloadMatchesFromApi();
+  }
+
+  // Método público para recarregar matches do servidor
+  Future<void> reloadMatchesFromApi() async {
+    try {
+      final res = await http.get(Uri.parse('$_baseUrl/matches')).timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          print('⚠️ Timeout ao carregar matches');
+          throw TimeoutException('Timeout', const Duration(seconds: 3));
+        },
+      );
+      if (res.statusCode == 200) {
+        final List data = json.decode(res.body) as List;
+        _matches.clear();
+        
+        for (final item in data) {
+          MatchStatus status;
+          switch (item['status']) {
+            case 'accepted':
+              status = MatchStatus.accepted;
+              break;
+            case 'rejected':
+              status = MatchStatus.rejected;
+              break;
+            default:
+              status = MatchStatus.pending;
+          }
+          
+          _matches.add(Match(
+            matchId: (item['_id'] ?? item['id'] ?? '').toString(),
+            elderlyId: (item['elderlyId'] ?? '').toString(),
+            caregiverId: (item['caregiverId'] ?? '').toString(),
+            status: status,
+            dataMatch: DateTime.tryParse(item['createdAt']?.toString() ?? '') ?? DateTime.now(),
+          ));
+        }
+      }
+    } catch (e) {
+      // Se falhar ao carregar matches, continua sem eles
+      print('Erro ao carregar matches: $e');
     }
   }
 
   // Autenticação
-  bool login(String emailOrPhone, String password) {
+  Future<bool> login(String emailOrPhone, String password) async {
     try {
       final user = _users.firstWhere(
         (user) => (_getUserEmail(user) == emailOrPhone || _getUserPhone(user) == emailOrPhone) && 
                   _getUserPassword(user) == password,
       );
       _currentUser = user;
+      
+      // Salvar ID do usuário para login automático
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userId', user.id);
+      
       return true;
     } catch (e) {
       return false;
     }
   }
 
-  bool loginByPhone(String phone, String password) {
+  Future<bool> loginByPhone(String phone, String password) async {
     try {
       final user = _users.firstWhere(
         (user) => _getUserPhone(user) == phone && _getUserPassword(user) == password,
       );
       _currentUser = user;
+      
+      // Salvar ID do usuário para login automático
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userId', user.id);
+      
       return true;
     } catch (e) {
+      return false;
+    }
+  }
+
+  // Tentar login automático
+  Future<bool> autoLogin() async {
+    try {
+      // Timeout no SharedPreferences (pode ser lento no web)
+      final prefs = await SharedPreferences.getInstance().timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          print('⚠️ Timeout ao acessar SharedPreferences');
+          throw TimeoutException('SharedPreferences timeout', const Duration(seconds: 2));
+        },
+      );
+      
+      final userId = prefs.getString('userId');
+      if (userId == null || userId.isEmpty) {
+        return false;
+      }
+      
+      // Não chamar initialize() novamente - já foi chamado antes
+      // Apenas procurar o usuário na lista atual
+      try {
+        final user = _users.firstWhere((u) => u.id == userId);
+        _currentUser = user;
+        return true;
+      } catch (e) {
+        // Usuário não encontrado na lista (pode não ter carregado do servidor)
+        print('⚠️ Usuário $userId não encontrado na lista');
+        return false;
+      }
+    } catch (e) {
+      print('⚠️ Erro no autoLogin: $e');
       return false;
     }
   }
@@ -332,17 +348,36 @@ class DataService {
   // util: converte caminho de arquivo em data URI base64
   String _encodeFileToDataUri(String path) {
     try {
-      final file = File(path);
-      final bytes = file.readAsBytesSync();
-      final b64 = base64Encode(bytes);
-      return 'data:image/jpeg;base64,$b64';
+      if (kIsWeb) {
+        // No web, o path pode já ser base64 ou uma string
+        if (path.startsWith('data:image/')) {
+          return path; // Já está em base64
+        }
+        // Se não for base64, tenta ler como File (pode não funcionar no web)
+        try {
+          final file = File(path);
+          final bytes = file.readAsBytesSync();
+          final b64 = base64Encode(bytes);
+          return 'data:image/jpeg;base64,$b64';
+        } catch (_) {
+          return path; // Fallback
+        }
+      } else {
+        // Mobile/Desktop: lê o arquivo normalmente
+        final file = File(path);
+        final bytes = file.readAsBytesSync();
+        final b64 = base64Encode(bytes);
+        return 'data:image/jpeg;base64,$b64';
+      }
     } catch (_) {
       return path; // fallback
     }
   }
 
-  void logout() {
+  Future<void> logout() async {
     _currentUser = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('userId');
   }
 
   // Buscar usuários filtrados por cidade/bairro
@@ -422,7 +457,7 @@ class DataService {
     ).toList();
   }
 
-  Match createMatch(String elderlyId, String caregiverId) {
+  Future<Match> createMatch(String elderlyId, String caregiverId) async {
     final match = Match(
       matchId: _generateId(),
       elderlyId: elderlyId,
@@ -431,64 +466,85 @@ class DataService {
       dataMatch: DateTime.now(),
     );
 
+    // Tentar criar no backend
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/matches'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'elderlyId': elderlyId,
+          'caregiverId': caregiverId,
+          'status': 'pending',
+        }),
+      ).timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 201) {
+        final data = json.decode(response.body);
+        // Usar ID do backend se disponível
+        final backendMatch = Match(
+          matchId: data['_id'] ?? match.matchId,
+          elderlyId: elderlyId,
+          caregiverId: caregiverId,
+          status: MatchStatus.pending,
+          dataMatch: DateTime.now(),
+        );
+        _matches.add(backendMatch);
+        return backendMatch;
+      }
+    } catch (_) {
+      // Se falhar, adiciona localmente
+    }
+
     _matches.add(match);
     return match;
   }
 
-  Future<void> acceptMatch(String matchId) async {
+  // Método unificado para atualizar status do match
+  Future<Match?> updateMatchStatus(String matchId, MatchStatus newStatus) async {
     try {
-      // Atualizar localmente
       final match = _matches.firstWhere((m) => m.matchId == matchId);
-      final index = _matches.indexOf(match);
-      _matches[index] = Match(
-        matchId: match.matchId,
-        elderlyId: match.elderlyId,
-        caregiverId: match.caregiverId,
-        status: MatchStatus.accepted,
-        dataMatch: match.dataMatch,
-      );
-
-      // Tentar atualizar no backend
-      try {
-        await http.put(
-          Uri.parse('$_baseUrl/matches/$matchId'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode({'status': 'accepted'}),
-        ).timeout(const Duration(seconds: 10));
-      } catch (_) {
-        // Se falhar no backend, pelo menos mantém local
+      
+      // Atualizar status localmente
+      if (newStatus == MatchStatus.accepted) {
+        match.accept();
+      } else if (newStatus == MatchStatus.rejected) {
+        match.reject();
       }
+
+      // Atualizar no backend (não bloqueia se falhar)
+      _updateMatchOnServer(matchId, newStatus).catchError((e) {
+        print('Aviso: Não foi possível atualizar match no servidor: $e');
+      });
+
+      return match;
     } catch (e) {
-      throw Exception('Erro ao aceitar match: $e');
+      throw Exception('Erro ao atualizar match: $e');
     }
   }
 
-  Future<void> rejectMatch(String matchId) async {
-    try {
-      // Atualizar localmente
-      final match = _matches.firstWhere((m) => m.matchId == matchId);
-      final index = _matches.indexOf(match);
-      _matches[index] = Match(
-        matchId: match.matchId,
-        elderlyId: match.elderlyId,
-        caregiverId: match.caregiverId,
-        status: MatchStatus.rejected,
-        dataMatch: match.dataMatch,
-      );
-
-      // Tentar atualizar no backend
-      try {
-        await http.put(
-          Uri.parse('$_baseUrl/matches/$matchId'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode({'status': 'rejected'}),
-        ).timeout(const Duration(seconds: 10));
-      } catch (_) {
-        // Se falhar no backend, pelo menos mantém local
-      }
-    } catch (e) {
-      throw Exception('Erro ao rejeitar match: $e');
+  // Método auxiliar para atualizar no servidor
+  Future<void> _updateMatchOnServer(String matchId, MatchStatus status) async {
+    final statusString = status == MatchStatus.accepted ? 'accepted' : 
+                        status == MatchStatus.rejected ? 'rejected' : 'pending';
+    
+    final response = await http.put(
+      Uri.parse('$_baseUrl/matches/$matchId'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'status': statusString}),
+    ).timeout(const Duration(seconds: 10));
+    
+    if (response.statusCode != 200) {
+      throw Exception('Servidor retornou status ${response.statusCode}');
     }
+  }
+
+  // Métodos de conveniência (mantidos para compatibilidade)
+  Future<void> acceptMatch(String matchId) async {
+    await updateMatchStatus(matchId, MatchStatus.accepted);
+  }
+
+  Future<void> rejectMatch(String matchId) async {
+    await updateMatchStatus(matchId, MatchStatus.rejected);
   }
 
   User? getUserById(String userId) {

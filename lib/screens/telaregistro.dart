@@ -122,25 +122,45 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
     final address = await CEPService.getAddressByCEP(_cepController.text);
     if (address.isNotEmpty) {
+      final cityName = address['city'] ?? '';
+      final stateCode = address['state'] ?? '';
+      
       setState(() {
         _streetController.text = address['street'] ?? '';
         _neighborhoodController.text = address['neighborhood'] ?? '';
-        _selectedCity = address['city'] ?? '';
-        _selectedState = address['state'] ?? '';
-        
-        // Carregar cidades do estado selecionado
-        if (_selectedState != null) {
-          _loadCities(_selectedState!);
-        }
+        _selectedState = stateCode;
       });
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Endereço preenchido automaticamente!')),
-      );
+      // Carregar cidades do estado primeiro, depois selecionar a cidade
+      if (stateCode.isNotEmpty) {
+        await _loadCities(stateCode);
+        // Aguardar um pouco para garantir que as cidades foram carregadas
+        await Future.delayed(const Duration(milliseconds: 100));
+        
+        // Verificar se a cidade existe na lista e selecionar
+        if (mounted && cityName.isNotEmpty) {
+          setState(() {
+            // Verifica se a cidade está na lista (pode ter pequenas diferenças de nome)
+            final foundCity = _cities.firstWhere(
+              (city) => city.toLowerCase() == cityName.toLowerCase(),
+              orElse: () => cityName,
+            );
+            _selectedCity = foundCity;
+          });
+        }
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Endereço preenchido automaticamente!')),
+        );
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('CEP não encontrado')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('CEP não encontrado')),
+        );
+      }
     }
   }
 
@@ -150,6 +170,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       setState(() {
         _selectedPhoto = photo;
       });
+      // Adicionar log para debug
+      print('Foto selecionada: ${_selectedPhoto?.path}');
     }
   }
 
@@ -299,12 +321,37 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       SizedBox(height: _accessibilityService.smallSpacing),
                       GestureDetector(
                         onTap: _selectPhoto,
-                        child: _photoService.buildProfilePhoto(
-                          photoUrl: _selectedPhoto?.path,
-                          radius: _accessibilityService.isLargeTextEnabled ? 60 : 50,
-                          onTap: _selectPhoto,
-                          showEditIcon: true,
-                        ),
+                        child: _selectedPhoto != null
+                          ? Stack(
+                              children: [
+                                CircleAvatar(
+                                  radius: _accessibilityService.isLargeTextEnabled ? 60 : 50,
+                                  backgroundImage: FileImage(_selectedPhoto!),
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.pink,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 2),
+                                    ),
+                                    child: const Icon(
+                                      Icons.camera_alt,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : _photoService.buildProfilePhoto(
+                              photoUrl: null,
+                              radius: _accessibilityService.isLargeTextEnabled ? 60 : 50,
+                              onTap: _selectPhoto,
+                              showEditIcon: true,
+                            ),
                       ),
                       SizedBox(height: _accessibilityService.smallSpacing),
                       BodyText(

@@ -1,0 +1,15 @@
+# IMPORTANTE: O Netlify não tem Flutter instalado por padrão
+# Use Netlify Drop após fazer build local:
+# 1. Execute: flutter build web --release
+# 2. Acesse: https://app.netlify.com/drop
+# 3. Arraste a pasta build/web
+
+[build]
+  # Deixe vazio - não use build command aqui
+  publish = "build/web"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+

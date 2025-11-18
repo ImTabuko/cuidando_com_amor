@@ -24,3 +24,4 @@ flutter:
   
   assets:
     - images/
+    # Removido assets/logo.png pois AppLogo usa images/logo.png

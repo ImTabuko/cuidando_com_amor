@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/auth_service.dart';
 import '../widgets/custom_text_field.dart';
 import '../services/accessibility_service.dart';
+import '../services/data_service.dart';
 import '../widgets/accessible_text.dart';
 import '../utils/app_colors.dart';
 import '../widgets/app_logo.dart';
@@ -26,22 +27,38 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
-    _accessibilityService.addListener(_updateState);
+    // Simplificado - não adiciona listener que pode travar
+    _isLargeTextEnabled = false; // Inicializa como false
+    
+    // Tentar auto-login em background (sem bloquear)
+    Future.microtask(() => _tryAutoLogin());
+  }
+  
+  void _tryAutoLogin() async {
+    try {
+      final dataService = DataService();
+      final loggedIn = await dataService.autoLogin().timeout(
+        const Duration(seconds: 1),
+        onTimeout: () => false,
+      ).catchError((e) => false);
+      
+      if (loggedIn && mounted) {
+        await Future.delayed(const Duration(milliseconds: 200));
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed('/home');
+        }
+      }
+    } catch (e) {
+      // Ignora
+    }
   }
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
-    _accessibilityService.removeListener(_updateState);
+    // Não precisa remover listener - não está sendo adicionado
     super.dispose();
-  }
-
-  void _updateState() {
-    setState(() {
-      _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
-    });
   }
 
   void _handleLogin() async {

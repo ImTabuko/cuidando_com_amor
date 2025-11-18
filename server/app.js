@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '10mb' })); // Aumentado para suportar imagens base64
 
 // Conectar MongoDB - somente via variável de ambiente
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -252,6 +252,22 @@ app.put('/api/matches/:id', async (req, res) => {
     );
     if (!match) return res.status(404).json({ error: 'Match não encontrado' });
     res.json(match);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// PUT - Atualizar foto de perfil do usuário
+app.put('/api/users/:id/photo', async (req, res) => {
+  try {
+    const { photoUrl } = req.body; // Espera base64 ou URL
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { photoUrl },
+      { new: true }
+    );
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    res.json({ photoUrl: user.photoUrl });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

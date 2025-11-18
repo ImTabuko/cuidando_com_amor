@@ -55,8 +55,8 @@ class ChatService {
     final List<ChatWithUsers> chatsWithUsers = [];
 
     for (final chat in userChats) {
-      final elderly = await _dataService.getUserById(chat.elderlyId);
-      final caregiver = await _dataService.getUserById(chat.caregiverId);
+      final elderly = _dataService.getUserById(chat.elderlyId);
+      final caregiver = _dataService.getUserById(chat.caregiverId);
 
       if (elderly != null && caregiver != null) {
         // Calcular unreadCount para este chat específico
@@ -173,7 +173,7 @@ class ChatService {
         ? chat.caregiverId 
         : chat.elderlyId;
 
-    return await _dataService.getUserById(partnerId);
+    return _dataService.getUserById(partnerId);
   }
 
   String _generateId() {

@@ -1,6 +1,5 @@
 import 'match.dart';
 import 'user.dart';
-import 'auth_service.dart';
 import '../services/data_service.dart';
 import '../services/chat_service.dart';
 
@@ -9,12 +8,12 @@ class MatchService {
   factory MatchService() => _instance;
   MatchService._internal();
 
-  final AuthService _authService = AuthService();
   final DataService _dataService = DataService();
   final ChatService _chatService = ChatService();
 
   // Obter todos os matches do usuário atual
-  Future<List<Match>> getMatchesForCurrentUser() async {
+  Future<List<Match>> getMatchesForCurrentUser({bool reload = false}) async {
+    if (reload) await _dataService.reloadMatchesFromApi();
     return _dataService.getMatchesForCurrentUser();
   }
 
@@ -25,21 +24,17 @@ class MatchService {
 
   // Aceitar um match
   Future<void> acceptMatch(String matchId) async {
-    _dataService.acceptMatch(matchId);
-    
-    // Criar chat automaticamente quando match é aceito
-    final matches = await _dataService.getMatchesForCurrentUser();
-    final match = matches.firstWhere((m) => m.matchId == matchId);
-    await _chatService.createChatFromMatch(match);
+    final match = await _dataService.updateMatchStatus(matchId, MatchStatus.accepted);
+    if (match != null && match.status == MatchStatus.accepted) {
+      await _chatService.createChatFromMatch(match);
+    }
   }
 
   // Rejeitar um match
   Future<void> rejectMatch(String matchId) async {
-    _dataService.rejectMatch(matchId);
+    await _dataService.updateMatchStatus(matchId, MatchStatus.rejected);
   }
 
-  // Obter usuário por ID (para exibir nos matches)
-  Future<User?> getUserById(String userId) async {
-    return _dataService.getUserById(userId);
-  }
+  // Obter usuário por ID
+  User? getUserById(String userId) => _dataService.getUserById(userId);
 }

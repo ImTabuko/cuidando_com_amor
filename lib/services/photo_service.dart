@@ -1,6 +1,9 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class PhotoService {
   static final PhotoService _instance = PhotoService._internal();
@@ -20,6 +23,11 @@ class PhotoService {
       );
       
       if (image != null) {
+        if (kIsWeb) {
+          // No web, retorna um File temporário usando o path do XFile
+          // O path no web é uma string que pode ser usada como identificador
+          return File(image.path);
+        }
         return File(image.path);
       }
       return null;
@@ -40,11 +48,28 @@ class PhotoService {
       );
       
       if (image != null) {
+        if (kIsWeb) {
+          // No web, retorna um File temporário
+          return File(image.path);
+        }
         return File(image.path);
       }
       return null;
     } catch (e) {
       print('Erro ao tirar foto: $e');
+      return null;
+    }
+  }
+  
+  // Converter XFile para base64 (útil para web)
+  Future<String?> imageToBase64(XFile image) async {
+    try {
+      final bytes = await image.readAsBytes();
+      final base64 = base64Encode(bytes);
+      final mimeType = image.mimeType ?? 'image/jpeg';
+      return 'data:$mimeType;base64,$base64';
+    } catch (e) {
+      print('Erro ao converter imagem para base64: $e');
       return null;
     }
   }
@@ -125,17 +150,31 @@ class PhotoService {
             backgroundColor: Colors.grey[300],
             child: Icon(
               Icons.person,
-              size: radius,
+              size: radius * 0.8,
               color: Colors.grey[600],
             ),
           );
         }
       } else {
         // Arquivo local
-        photoWidget = CircleAvatar(
-          radius: radius,
-          backgroundImage: FileImage(File(photoUrl)),
-        );
+        try {
+          photoWidget = CircleAvatar(
+            radius: radius,
+            backgroundImage: FileImage(File(photoUrl)),
+          );
+          print('Exibindo foto local: $photoUrl');
+        } catch (e) {
+          print('Erro ao exibir foto local: $e');
+          photoWidget = CircleAvatar(
+            radius: radius,
+            backgroundColor: Colors.grey[300],
+            child: Icon(
+              Icons.person,
+              size: radius * 0.8,
+              color: Colors.grey[600],
+            ),
+          );
+        }
       }
     } else {
       // Se não tem foto, mostrar ícone padrão
@@ -144,7 +183,7 @@ class PhotoService {
         backgroundColor: Colors.grey[300],
         child: Icon(
           Icons.person,
-          size: radius,
+          size: radius * 0.8,
           color: Colors.grey[600],
         ),
       );
@@ -154,6 +193,7 @@ class PhotoService {
       return GestureDetector(
         onTap: onTap,
         child: Stack(
+          clipBehavior: Clip.none,
           children: [
             photoWidget,
             if (showEditIcon)
@@ -161,6 +201,7 @@ class PhotoService {
                 bottom: 0,
                 right: 0,
                 child: Container(
+                  padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
                     color: Colors.pink,
                     shape: BoxShape.circle,

@@ -33,17 +33,30 @@ class AccessibleText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accessibilityService = AccessibilityService();
+    final mediaQuery = MediaQuery.of(context);
     
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: _getFontSize(accessibilityService),
-        fontWeight: fontWeight,
-        color: color,
+    // Não atualizar a cada build - pode travar
+    // accessibilityService.updateFromMediaQuery(mediaQuery);
+    
+    final effectiveColor = accessibilityService.getHighContrastColor(
+      color ?? Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black,
+    );
+    
+    final fontSize = _getFontSize(accessibilityService) * mediaQuery.textScaleFactor;
+    
+    return Semantics(
+      label: text,
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: effectiveColor,
+        ),
+        textAlign: textAlign,
+        maxLines: maxLines,
+        overflow: overflow,
       ),
-      textAlign: textAlign,
-      maxLines: maxLines,
-      overflow: overflow,
     );
   }
 

@@ -23,13 +23,10 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
   late TabController _tabController;
   List<Match> _matches = [];
   bool _isLoading = true;
-  bool _isLargeTextEnabled = false;
 
   @override
   void initState() {
     super.initState();
-    _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
-    _accessibilityService.addListener(_updateState);
     _tabController = TabController(length: 3, vsync: this);
     _loadMatches();
   }
@@ -37,31 +34,24 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
   @override
   void dispose() {
     _tabController.dispose();
-    _accessibilityService.removeListener(_updateState);
     super.dispose();
   }
 
-  void _updateState() {
-    setState(() {
-      _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
-    });
-  }
-
-  Future<void> _loadMatches() async {
-    setState(() {
-      _isLoading = true;
-    });
+  Future<void> _loadMatches({bool reload = false}) async {
+    if (!mounted) return;
+    
+    setState(() => _isLoading = true);
 
     try {
-      _matches = await _matchService.getMatchesForCurrentUser();
+      _matches = await _matchService.getMatchesForCurrentUser(reload: reload);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar matches: ${e.toString()}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao carregar matches: ${e.toString()}')),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -107,8 +97,8 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
       return _buildEmptyState(status);
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadMatches,
+      return RefreshIndicator(
+      onRefresh: () => _loadMatches(reload: true),
       child: ListView.builder(
         padding: EdgeInsets.all(_accessibilityService.largeSpacing),
         itemCount: filteredMatches.length,
@@ -159,7 +149,7 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
           ),
           SizedBox(height: _accessibilityService.largeSpacing),
           ElevatedButton(
-            onPressed: _loadMatches,
+            onPressed: () => _loadMatches(reload: true),
             child: ButtonText('Atualizar'),
           ),
         ],
@@ -242,11 +232,13 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
 
   Widget _buildMatchActions(Match match, User otherUser) {
     final currentUser = _authService.currentUser;
+    if (currentUser == null) return const SizedBox.shrink();
+    
     final isElderly = currentUser is ElderlyUser;
     
     // Determinar se o usuário atual criou o match ou recebeu
-    final isMatchCreator = (isElderly && match.elderlyId == currentUser?.id) ||
-                          (!isElderly && match.caregiverId == currentUser?.id);
+    final isMatchCreator = (isElderly && match.elderlyId == currentUser.id) ||
+                          (!isElderly && match.caregiverId == currentUser.id);
     
     // Para matches pendentes
     if (match.status == MatchStatus.pending) {
@@ -341,32 +333,36 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
     );
   }
 
-  Future<void> _acceptMatch(Match match) async {
+  Future<void> _updateMatchStatus(Match match, MatchStatus status, String successMessage) async {
     try {
-      await _matchService.acceptMatch(match.matchId);
-      _loadMatches();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Match aceito com sucesso!')),
-      );
+      if (status == MatchStatus.accepted) {
+        await _matchService.acceptMatch(match.matchId);
+      } else {
+        await _matchService.rejectMatch(match.matchId);
+      }
+      
+      await _loadMatches();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(successMessage)),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: ${e.toString()}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro: ${e.toString()}')),
+        );
+      }
     }
   }
 
+  Future<void> _acceptMatch(Match match) async {
+    await _updateMatchStatus(match, MatchStatus.accepted, 'Match aceito com sucesso!');
+  }
+
   Future<void> _rejectMatch(Match match) async {
-    try {
-      await _matchService.rejectMatch(match.matchId);
-      _loadMatches();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Match rejeitado')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: ${e.toString()}')),
-      );
-    }
+    await _updateMatchStatus(match, MatchStatus.rejected, 'Match rejeitado');
   }
 
   Future<void> _viewProfile(User user) async {

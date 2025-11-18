@@ -9,6 +9,8 @@ import 'available_elderlies_screen.dart';
 import 'matches_screen.dart';
 import 'chats_screen.dart';
 import 'telalogin.dart';
+import 'accessibility_settings_screen.dart';
+import '../widgets/accessible_button.dart';
 import '../utils/app_colors.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -51,8 +53,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: TitleText('Cuidando com Amor', color: Colors.white),
+        title: const TitleText('Cuidando com Amor', color: Colors.white),
         backgroundColor: AppColors.primary,
+        actions: [
+          AccessibleIconButton(
+            icon: Icons.accessibility_new,
+            label: 'Configurações de Acessibilidade',
+            hint: 'Abrir configurações de acessibilidade',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AccessibilitySettingsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: _getPage(),
     );
@@ -144,14 +161,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         );
       default:
-        return Center(child: TitleText('Página não encontrada'));
+        return const Center(child: TitleText('Página não encontrada'));
     }
   }
 
   Widget _buildProfilePage() {
     final user = _authService.currentUser;
     if (user == null) {
-      return Center(child: TitleText('Usuário não encontrado'));
+      return const Center(child: TitleText('Usuário não encontrado'));
     }
 
     final isElderly = user is ElderlyUser;
@@ -185,9 +202,12 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildProfileInfo(user),
           SizedBox(height: _accessibilityService.largeSpacing * 2),
           ElevatedButton.icon(
-            onPressed: _logout,
-            icon: Icon(Icons.logout),
-            label: ButtonText('Sair', color: Colors.white),
+            onPressed: () {
+              _accessibilityService.mediumImpact();
+              _logout();
+            },
+            icon: const Icon(Icons.logout),
+            label: const ButtonText('Sair', color: Colors.white),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               padding: EdgeInsets.symmetric(
@@ -286,24 +306,39 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNavButton(IconData icon, String label, int index) {
     final isSelected = _selectedIndex == index;
     return Expanded(
-      child: InkWell(
-        onTap: () => _onItemTapped(index),
+      child: Semantics(
+        label: label,
+        hint: 'Navegar para $label',
+        button: true,
+        selected: isSelected,
+        child: InkWell(
+          onTap: () {
+            _accessibilityService.lightImpact();
+            _onItemTapped(index);
+          },
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
           decoration: BoxDecoration(
             color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: Colors.white, size: _accessibilityService.iconSize),
-              SizedBox(height: 4),
-              Text(
+              Icon(icon, color: Colors.white, size: _accessibilityService.iconSize * 0.9),
+              const SizedBox(height: 4),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
                 label,
-                style: TextStyle(color: Colors.white, fontSize: 11),
+                  style: const TextStyle(color: Colors.white, fontSize: 11),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
+        ),
         ),
       ),
     );
