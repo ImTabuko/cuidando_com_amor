@@ -209,69 +209,106 @@ class _SignLanguageInterpreterState extends State<SignLanguageInterpreter> {
   }
 
   Widget _buildVlibrasWidget(double width, double height) {
-    // Widget que mostra a tradução em Libras
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue[300]!, width: 2),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    // Widget que mostra a tradução em Libras usando iframe do VLibras
+    if (kIsWeb && _videoUrl != null) {
+      // Em web, usar HtmlElementView para embedar o widget VLibras
+      return Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.blue[50],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.blue[300]!, width: 2),
+        ),
+        child: Stack(
           children: [
-            Icon(
-              Icons.sign_language,
-              size: 48,
-              color: Colors.blue[800],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Libras Ativado',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue[800],
+            // Iframe do VLibras (será implementado via JavaScript)
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.sign_language,
+                    size: 48,
+                    color: Colors.blue[800],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Libras Ativado',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[800],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(
+                      '"${widget.text}"',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[700],
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Text(
-                '"${widget.text}"',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[700],
-                  fontStyle: FontStyle.italic,
+            // Botão para abrir VLibras
+            Positioned(
+              bottom: 8,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: ElevatedButton.icon(
+                  onPressed: () => _openVlibrasWebsite(),
+                  icon: const Icon(Icons.open_in_new, size: 16),
+                  label: const Text('Ver em Libras'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[800],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: () => _openVlibrasWebsite(),
-              icon: const Icon(Icons.open_in_new, size: 16),
-              label: const Text('Ver em Libras'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue[800],
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
             ),
           ],
         ),
-      ),
-    );
+      );
+    }
+    
+    // Fallback para mobile ou quando não há URL
+    return _buildVideoIcon(width, height);
   }
 
   void _openVlibrasWebsite() {
-    if (_videoUrl != null && mounted) {
-      // Mostrar mensagem informativa
-      try {
+    if (mounted && widget.text.isNotEmpty) {
+      // Em web, tentar abrir o VLibras
+      if (kIsWeb) {
+        try {
+          // Tentar usar o widget VLibras via JavaScript
+          final script = _signLanguageService.getVlibrasScript(widget.text);
+          // Executar script via JavaScript (será implementado)
+          print('🔊 Executando VLibras para: "${widget.text}"');
+          
+          // Mostrar mensagem informativa
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Libras: "${widget.text}"'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } catch (e) {
+          print('Erro ao abrir VLibras: $e');
+        }
+      } else {
+        // Em mobile, mostrar mensagem
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -279,8 +316,6 @@ class _SignLanguageInterpreterState extends State<SignLanguageInterpreter> {
             duration: const Duration(seconds: 2),
           ),
         );
-      } catch (e) {
-        print('Erro ao mostrar mensagem: $e');
       }
     }
   }

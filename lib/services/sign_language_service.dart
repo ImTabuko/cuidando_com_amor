@@ -34,22 +34,43 @@ class SignLanguageService {
   }
 
   // Método combinado: traduzir texto e obter vídeo
-  // Usando API pública de tradução para Libras
+  // Usando widget VLibras via JavaScript
   Future<String?> translateAndGetVideo(String text) async {
     if (!_isEnabled || text.isEmpty) return null;
     
     try {
-      // Usar API pública do VLibras ou retornar URL do widget
-      // O VLibras tem um widget JavaScript que pode ser integrado
+      // O VLibras funciona via widget JavaScript
+      // Vamos retornar o texto para ser processado pelo widget
+      // O widget será carregado via JavaScript no HTML
       final encodedText = Uri.encodeComponent(text);
       
-      // Retornar URL do widget VLibras que processa o texto
-      // O widget VLibras funciona via iframe ou JavaScript
-      return 'https://www.vlibras.gov.br/app/?text=$encodedText';
+      // Retornar uma URL que pode ser usada para abrir o VLibras
+      // ou o texto codificado para processamento
+      return 'vlibras://translate?text=$encodedText';
     } catch (e) {
       print('Erro ao traduzir e obter vídeo: $e');
       return null;
     }
+  }
+  
+  // Método para inicializar o widget VLibras no HTML (chamado via JavaScript)
+  String getVlibrasScript(String text) {
+    final encodedText = Uri.encodeComponent(text);
+    return '''
+      (function() {
+        if (typeof window.vlibras === 'undefined') {
+          var script = document.createElement('script');
+          script.src = 'https://vlibras.gov.br/app/vlibras-plugin.js';
+          script.onload = function() {
+            new window.VLibras.Widget('https://vlibras.gov.br/app');
+            window.vlibras.translate('$encodedText');
+          };
+          document.body.appendChild(script);
+        } else {
+          window.vlibras.translate('$encodedText');
+        }
+      })();
+    ''';
   }
   
   // Método para obter glosa (representação textual dos sinais)

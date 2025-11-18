@@ -43,14 +43,16 @@ class _ChatsScreenState extends State<ChatsScreen> {
     });
   }
 
-  Future<void> _loadChats() async {
+  Future<void> _loadChats({bool reload = false}) async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      _chats = await _chatService.getChatsForCurrentUser();
+      // Sempre recarregar do backend para garantir dados atualizados
+      _chats = await _chatService.getChatsForCurrentUser(reload: true);
     } catch (e) {
+      print('❌ Erro ao carregar chats: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -68,11 +70,13 @@ class _ChatsScreenState extends State<ChatsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false, // Desabilita botão de voltar do Android
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
-          automaticallyImplyLeading: false,
+          automaticallyImplyLeading: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
+          ),
         title: TitleText('Conversas', color: Colors.white),
         backgroundColor: AppColors.primary,
         actions: [
@@ -129,7 +133,6 @@ class _ChatsScreenState extends State<ChatsScreen> {
                     },
                   ),
                 ),
-      ),
     );
   }
 

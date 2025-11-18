@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(cors());
+
 app.use(express.json({ limit: '10mb' })); // Aumentado para suportar imagens base64
 
 // Conectar MongoDB - somente via variável de ambiente
@@ -65,6 +66,31 @@ const matchSchema = new mongoose.Schema({
 });
 
 const Match = mongoose.model('Match', matchSchema);
+
+// Schema de Chat
+const chatSchema = new mongoose.Schema({
+  elderlyId: String,
+  caregiverId: String,
+  lastMessage: String,
+  lastMessageAt: Date,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Chat = mongoose.model('Chat', chatSchema);
+
+// Schema de Message
+const messageSchema = new mongoose.Schema({
+  chatId: String,
+  senderId: String,
+  receiverId: String,
+  content: String,
+  type: { type: String, enum: ['text', 'image'], default: 'text' },
+  imageUrl: String,
+  isRead: { type: Boolean, default: false },
+  timestamp: { type: Date, default: Date.now }
+});
+
+const Message = mongoose.model('Message', messageSchema);
 
 // Rota de Health Check
 app.get('/api/health', (req, res) => {
@@ -223,7 +249,7 @@ app.get('/api/seed', async (req, res) => {
 // GET - Matches
 app.get('/api/matches', async (req, res) => {
   try {
-    const matches = await Match.find();
+    const matches = await Match.find().sort({ createdAt: -1 });
     res.json(matches);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -233,6 +259,18 @@ app.get('/api/matches', async (req, res) => {
 // POST - Criar match
 app.post('/api/matches', async (req, res) => {
   try {
+    // Verificar se já existe match entre esses dois usuários
+    const existingMatch = await Match.findOne({
+      $or: [
+        { elderlyId: req.body.elderlyId, caregiverId: req.body.caregiverId },
+        { elderlyId: req.body.caregiverId, caregiverId: req.body.elderlyId }
+      ]
+    });
+    
+    if (existingMatch) {
+      return res.json(existingMatch);
+    }
+    
     const newMatch = new Match(req.body);
     await newMatch.save();
     res.status(201).json(newMatch);
@@ -268,6 +306,109 @@ app.put('/api/users/:id/photo', async (req, res) => {
     );
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
     res.json({ photoUrl: user.photoUrl });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ========== ENDPOINTS DE CHATS ==========
+
+// GET - Listar chats do usuário
+app.get('/api/chats', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'userId é obrigatório' });
+    
+    const chats = await Chat.find({
+      $or: [
+        { elderlyId: userId },
+        { caregiverId: userId }
+      ]
+    }).sort({ lastMessageAt: -1, createdAt: -1 });
+    
+    res.json(chats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST - Criar chat
+app.post('/api/chats', async (req, res) => {
+  try {
+    const { elderlyId, caregiverId } = req.body;
+    
+    // Verificar se já existe chat
+    const existingChat = await Chat.findOne({
+      $or: [
+        { elderlyId, caregiverId },
+        { elderlyId: caregiverId, caregiverId: elderlyId }
+      ]
+    });
+    
+    if (existingChat) {
+      return res.json(existingChat);
+    }
+    
+    const newChat = new Chat({
+      elderlyId,
+      caregiverId,
+      createdAt: new Date()
+    });
+    await newChat.save();
+    res.status(201).json(newChat);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// GET - Obter mensagens de um chat
+app.get('/api/chats/:chatId/messages', async (req, res) => {
+  try {
+    const messages = await Message.find({ chatId: req.params.chatId })
+      .sort({ timestamp: 1 });
+    res.json(messages);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST - Enviar mensagem
+app.post('/api/chats/:chatId/messages', async (req, res) => {
+  try {
+    const { senderId, receiverId, content, type, imageUrl } = req.body;
+    
+    const newMessage = new Message({
+      chatId: req.params.chatId,
+      senderId,
+      receiverId,
+      content,
+      type: type || 'text',
+      imageUrl,
+      timestamp: new Date()
+    });
+    await newMessage.save();
+    
+    // Atualizar chat com última mensagem
+    await Chat.findByIdAndUpdate(req.params.chatId, {
+      lastMessage: content,
+      lastMessageAt: new Date()
+    });
+    
+    res.status(201).json(newMessage);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// PUT - Marcar mensagens como lidas
+app.put('/api/chats/:chatId/messages/read', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    await Message.updateMany(
+      { chatId: req.params.chatId, receiverId: userId, isRead: false },
+      { $set: { isRead: true } }
+    );
+    res.json({ success: true });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

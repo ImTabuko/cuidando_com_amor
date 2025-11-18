@@ -55,13 +55,14 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  Future<void> _loadMessages() async {
+  Future<void> _loadMessages({bool reload = false}) async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      _messages = await _chatService.getMessagesForChat(widget.chat.id);
+      // Sempre recarregar do backend para garantir dados atualizados
+      _messages = await _chatService.getMessagesForChat(widget.chat.id, reload: true);
       
       // Marcar mensagens como lidas
       final currentUser = _chatService.dataService.currentUser;
@@ -69,6 +70,7 @@ class _ChatScreenState extends State<ChatScreen> {
         await _chatService.markMessagesAsRead(widget.chat.id, currentUser.id);
       }
     } catch (e) {
+      print('❌ Erro ao carregar mensagens: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -101,7 +103,8 @@ class _ChatScreenState extends State<ChatScreen> {
         content: content,
       );
 
-      _loadMessages();
+      // Recarregar mensagens do backend para garantir sincronização
+      await _loadMessages(reload: true);
       _scrollToBottom();
     } catch (e) {
       if (mounted) {
@@ -127,11 +130,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false, // Desabilita botão de voltar do Android
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
-          automaticallyImplyLeading: false,
+          automaticallyImplyLeading: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
           title: Row(
           children: [
             _photoService.buildProfilePhoto(
@@ -210,7 +215,6 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           _buildMessageInput(),
         ],
-      ),
       ),
     );
   }

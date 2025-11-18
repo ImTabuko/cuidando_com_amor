@@ -24,7 +24,7 @@ class DataService {
   List<Match> get allMatches => List.unmodifiable(_matches);
 
 
-  // ------------------- Integração simples com a API -------------------
+  // ------------------- Integração com a API -------------------
   static const String _baseUrl = 'https://cuidando-com-amor-ssud.vercel.app/api';
 
   // Inicializar carregando dados do servidor
@@ -130,15 +130,17 @@ class DataService {
   // Método público para recarregar matches do servidor
   Future<void> reloadMatchesFromApi() async {
     try {
+      print('📥 Carregando matches do backend...');
       final res = await http.get(Uri.parse('$_baseUrl/matches')).timeout(
-        const Duration(seconds: 3),
+        const Duration(seconds: 5),
         onTimeout: () {
           print('⚠️ Timeout ao carregar matches');
-          throw TimeoutException('Timeout', const Duration(seconds: 3));
+          throw TimeoutException('Timeout', const Duration(seconds: 5));
         },
       );
       if (res.statusCode == 200) {
         final List data = json.decode(res.body) as List;
+        print('📊 Matches recebidos do backend: ${data.length}');
         _matches.clear();
         
         for (final item in data) {
@@ -154,18 +156,27 @@ class DataService {
               status = MatchStatus.pending;
           }
           
+          final matchId = (item['_id'] ?? item['id'] ?? '').toString();
+          final elderlyId = (item['elderlyId'] ?? '').toString();
+          final caregiverId = (item['caregiverId'] ?? '').toString();
+          
+          print('  - Match: $matchId, Elderly: $elderlyId, Caregiver: $caregiverId, Status: $status');
+          
           _matches.add(Match(
-            matchId: (item['_id'] ?? item['id'] ?? '').toString(),
-            elderlyId: (item['elderlyId'] ?? '').toString(),
-            caregiverId: (item['caregiverId'] ?? '').toString(),
+            matchId: matchId,
+            elderlyId: elderlyId,
+            caregiverId: caregiverId,
             status: status,
             dataMatch: DateTime.tryParse(item['createdAt']?.toString() ?? '') ?? DateTime.now(),
           ));
         }
+        print('✅ Total de matches carregados: ${_matches.length}');
+      } else {
+        print('⚠️ Backend retornou status ${res.statusCode}');
       }
     } catch (e) {
       // Se falhar ao carregar matches, continua sem eles
-      print('Erro ao carregar matches: $e');
+      print('❌ Erro ao carregar matches: $e');
     }
   }
 
@@ -549,17 +560,24 @@ class DataService {
     try {
       final match = _matches.firstWhere((m) => m.matchId == matchId);
       
+      // Atualizar no backend PRIMEIRO
+      try {
+        await _updateMatchOnServer(matchId, newStatus);
+        print('✅ Match atualizado no backend: $matchId -> $newStatus');
+      } catch (e) {
+        print('❌ Erro ao atualizar match no backend: $e');
+        // Continua mesmo se falhar
+      }
+      
       // Atualizar status localmente
       if (newStatus == MatchStatus.accepted) {
         match.accept();
       } else if (newStatus == MatchStatus.rejected) {
         match.reject();
       }
-
-      // Atualizar no backend (não bloqueia se falhar)
-      _updateMatchOnServer(matchId, newStatus).catchError((e) {
-        print('Aviso: Não foi possível atualizar match no servidor: $e');
-      });
+      
+      // Recarregar matches do servidor para garantir sincronização
+      await reloadMatchesFromApi();
 
       return match;
     } catch (e) {
