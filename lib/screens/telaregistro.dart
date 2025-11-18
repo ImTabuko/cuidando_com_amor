@@ -172,37 +172,56 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       final photo = await _photoService.showImageSourceDialog(context);
       print('📸 Foto selecionada: ${photo != null ? "SIM" : "NÃO"}');
       
-      if (photo != null) {
-        print('📸 Carregando bytes da foto...');
-        final bytes = await photo.readAsBytes();
-        print('📸 Bytes carregados: ${bytes.length} bytes');
-        
-        if (mounted) {
-          setState(() {
-            _selectedPhoto = photo;
-            _photoBytes = bytes;
-          });
-          print('✅ Foto atualizada no estado! _photoBytes: ${_photoBytes != null ? "presente" : "ausente"}');
-          
-          // Mostrar feedback visual
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Foto selecionada!'),
-              duration: Duration(seconds: 1),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
+      if (photo == null) {
         print('⚠️ Nenhuma foto foi selecionada');
+        return;
       }
-    } catch (e) {
+      
+      print('📸 Carregando bytes da foto...');
+      final bytes = await photo.readAsBytes();
+      print('📸 Bytes carregados: ${bytes.length} bytes');
+      
+      if (!mounted) {
+        print('⚠️ Widget não está montado');
+        return;
+      }
+      
+      // Atualizar estado ANTES de mostrar feedback
+      setState(() {
+        _selectedPhoto = photo;
+        _photoBytes = bytes;
+      });
+      
+      print('✅ Estado atualizado! _photoBytes: ${_photoBytes != null ? "${_photoBytes!.length} bytes" : "null"}');
+      print('✅ _selectedPhoto: ${_selectedPhoto != null ? "presente" : "null"}');
+      
+      // Forçar rebuild imediato
+      if (mounted) {
+        await Future.delayed(const Duration(milliseconds: 50));
+        setState(() {
+          // Força rebuild
+        });
+      }
+      
+      // Mostrar feedback visual
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Foto selecionada!'),
+            duration: Duration(seconds: 1),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
       print('❌ Erro ao selecionar foto: $e');
+      print('❌ Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro ao carregar foto: $e'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -228,22 +247,45 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   
   // Construir preview da foto selecionada
   Widget _buildPhotoPreview() {
-    if (_photoBytes == null) {
-      return CircleAvatar(
-        radius: _accessibilityService.isLargeTextEnabled ? 60 : 50,
-        backgroundColor: Colors.grey[300],
+    final radius = _accessibilityService.isLargeTextEnabled ? 60.0 : 50.0;
+    
+    if (_photoBytes == null || _photoBytes!.isEmpty) {
+      return SizedBox(
+        width: radius * 2,
+        height: radius * 2,
         child: const CircularProgressIndicator(),
       );
     }
     
     try {
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          CircleAvatar(
-            radius: _accessibilityService.isLargeTextEnabled ? 60 : 50,
-            backgroundImage: MemoryImage(_photoBytes!),
-          ),
+      print('🖼️ Construindo preview com ${_photoBytes!.length} bytes');
+      
+      return KeyedSubtree(
+        key: ValueKey('photo_${_photoBytes!.length}'),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            ClipOval(
+              child: Image.memory(
+                _photoBytes!,
+                width: radius * 2,
+                height: radius * 2,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  print('❌ Erro ao exibir imagem: $error');
+                  return Container(
+                    width: radius * 2,
+                    height: radius * 2,
+                    color: Colors.grey[300],
+                    child: Icon(
+                      Icons.error,
+                      size: radius,
+                      color: Colors.red,
+                    ),
+                  );
+                },
+              ),
+            ),
           Positioned(
             bottom: 0,
             right: 0,
@@ -262,15 +304,20 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             ),
           ),
         ],
+        ),
       );
     } catch (e) {
-      print('Erro ao exibir preview: $e');
-      return CircleAvatar(
-        radius: _accessibilityService.isLargeTextEnabled ? 60 : 50,
-        backgroundColor: Colors.grey[300],
+      print('❌ Erro ao exibir preview: $e');
+      return Container(
+        width: radius * 2,
+        height: radius * 2,
+        decoration: BoxDecoration(
+          color: Colors.grey[300],
+          shape: BoxShape.circle,
+        ),
         child: Icon(
           Icons.person,
-          size: _accessibilityService.isLargeTextEnabled ? 48 : 40,
+          size: radius * 0.8,
           color: Colors.grey[600],
         ),
       );
@@ -433,19 +480,25 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       Center(
                         child: GestureDetector(
                           onTap: _selectPhoto,
-                          child: _selectedPhoto != null && _photoBytes != null
-                            ? _buildPhotoPreview()
-                            : _photoService.buildProfilePhoto(
-                                photoUrl: null,
-                                radius: _accessibilityService.isLargeTextEnabled ? 60 : 50,
-                                onTap: _selectPhoto,
-                                showEditIcon: true,
-                              ),
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            child: _photoBytes != null
+                              ? _buildPhotoPreview()
+                              : KeyedSubtree(
+                                  key: const ValueKey('no_photo'),
+                                  child: _photoService.buildProfilePhoto(
+                                    photoUrl: null,
+                                    radius: _accessibilityService.isLargeTextEnabled ? 60 : 50,
+                                    onTap: _selectPhoto,
+                                    showEditIcon: true,
+                                  ),
+                                ),
+                          ),
                         ),
                       ),
                       SizedBox(height: _accessibilityService.smallSpacing),
                       BodyText(
-                        _selectedPhoto != null 
+                        _photoBytes != null 
                           ? 'Foto selecionada' 
                           : 'Toque para adicionar foto',
                         color: Colors.grey[600],
