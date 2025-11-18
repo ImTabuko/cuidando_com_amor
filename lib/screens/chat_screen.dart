@@ -125,9 +125,12 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
+    return PopScope(
+      canPop: false, // Desabilita botão de voltar do Android
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: Row(
           children: [
             _photoService.buildProfilePhoto(
               photoUrl: widget.partner.photoUrl,
@@ -325,6 +328,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -36,8 +36,11 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
     // Não atualizar automaticamente - usar configurações manuais do usuário
     // _accessibilityService.updateFromMediaQuery(mediaQuery);
 
-    return Scaffold(
-      appBar: AppBar(
+    return PopScope(
+      canPop: false, // Desabilita botão de voltar do Android
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
         title: const TitleText('Configurações de Acessibilidade', color: Colors.white),
         backgroundColor: AppColors.primary,
       ),
@@ -255,6 +258,7 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
             ),
           ),
         ],
+      ),
       ),
     );
   }

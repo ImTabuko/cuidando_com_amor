@@ -42,35 +42,39 @@ class _CaregiverProfileScreenState extends State<CaregiverProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: TitleText('Perfil do Cuidador', color: Colors.white),
-        backgroundColor: Colors.blue[800],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: EdgeInsets.all(_accessibilityService.largeSpacing),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildProfileHeader(),
-                  SizedBox(height: _accessibilityService.largeSpacing),
-                  _buildInfoSection('Informações Pessoais', [
-                    _buildInfoItem('Nome', widget.caregiver.fullName),
-                    _buildInfoItem('Idade', '${widget.caregiver.age} anos'),
-                    _buildInfoItem('Cidade', widget.caregiver.city),
-                    _buildInfoItem('Telefone', widget.caregiver.phone),
-                  ]),
-                  SizedBox(height: _accessibilityService.defaultSpacing),
-                  _buildInfoSection('Sobre Mim', [
-                    _buildInfoItem('Descrição', widget.caregiver.description),
-                  ]),
-                  SizedBox(height: _accessibilityService.largeSpacing * 2),
-                  _buildMatchButton(),
-                ],
+    return PopScope(
+      canPop: false, // Desabilita botão de voltar do Android
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: TitleText('Perfil do Cuidador', color: Colors.white),
+          backgroundColor: Colors.blue[800],
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: EdgeInsets.all(_accessibilityService.largeSpacing),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildProfileHeader(),
+                    SizedBox(height: _accessibilityService.largeSpacing),
+                    _buildInfoSection('Informações Pessoais', [
+                      _buildInfoItem('Nome', widget.caregiver.fullName),
+                      _buildInfoItem('Idade', '${widget.caregiver.age} anos'),
+                      _buildInfoItem('Cidade', widget.caregiver.city),
+                      _buildInfoItem('Telefone', widget.caregiver.phone),
+                    ]),
+                    SizedBox(height: _accessibilityService.defaultSpacing),
+                    _buildInfoSection('Sobre Mim', [
+                      _buildInfoItem('Descrição', widget.caregiver.description),
+                    ]),
+                    SizedBox(height: _accessibilityService.largeSpacing * 2),
+                    _buildMatchButton(),
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 

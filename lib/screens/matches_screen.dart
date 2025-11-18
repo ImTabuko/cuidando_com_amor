@@ -57,8 +57,11 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    return PopScope(
+      canPop: false, // Desabilita botão de voltar do Android
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
         title: TitleText('Meus Matches', color: Colors.white),
         backgroundColor: AppColors.primary,
         bottom: TabBar(
@@ -114,6 +117,7 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
             },
           );
         },
+      ),
       ),
     );
   }

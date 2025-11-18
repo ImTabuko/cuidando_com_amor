@@ -421,14 +421,17 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: TitleText('Cadastro', color: Colors.white),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
+    return PopScope(
+      canPop: false, // Desabilita botão de voltar do Android
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: TitleText('Cadastro', color: Colors.white),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(_accessibilityService.largeSpacing),
         child: Form(
@@ -560,6 +563,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

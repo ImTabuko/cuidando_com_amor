@@ -67,8 +67,11 @@ class _ChatsScreenState extends State<ChatsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    return PopScope(
+      canPop: false, // Desabilita botão de voltar do Android
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
         title: TitleText('Conversas', color: Colors.white),
         backgroundColor: AppColors.primary,
         actions: [
@@ -196,6 +199,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
           );
           _loadChats(); // Recarregar para atualizar contadores
         },
+      ),
       ),
     );
   }

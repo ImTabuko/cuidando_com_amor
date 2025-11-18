@@ -19,8 +19,11 @@ class _ElderlyProfileScreenState extends State<ElderlyProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    return PopScope(
+      canPop: false, // Desabilita botão de voltar do Android
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
         title: const Text('Perfil do Idoso'),
         backgroundColor: Colors.blue[800],
       ),
@@ -50,6 +53,7 @@ class _ElderlyProfileScreenState extends State<ElderlyProfileScreen> {
                 ],
               ),
             ),
+      ),
     );
   }
 

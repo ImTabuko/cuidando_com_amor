@@ -50,27 +50,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const TitleText('Cuidando com Amor', color: Colors.white),
-        backgroundColor: AppColors.primary,
-        actions: [
-          AccessibleIconButton(
-            icon: Icons.accessibility_new,
-            label: 'Configurações de Acessibilidade',
-            hint: 'Abrir configurações de acessibilidade',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AccessibilitySettingsScreen(),
-                ),
-              );
-            },
-          ),
-        ],
+    return PopScope(
+      canPop: false, // Desabilita botão de voltar do Android
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: const TitleText('Cuidando com Amor', color: Colors.white),
+          backgroundColor: AppColors.primary,
+          actions: [
+            AccessibleIconButton(
+              icon: Icons.accessibility_new,
+              label: 'Configurações de Acessibilidade',
+              hint: 'Abrir configurações de acessibilidade',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AccessibilitySettingsScreen(),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        body: _getPage(),
       ),
-      body: _getPage(),
     );
   }
 
