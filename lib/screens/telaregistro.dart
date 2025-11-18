@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import '../models/auth_service.dart';
@@ -192,7 +191,18 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   // Converter foto para base64 antes de enviar
   Future<String?> _getPhotoBase64() async {
     if (_selectedPhoto == null) return null;
-    return await _photoService.convertXFileToBase64(_selectedPhoto);
+    try {
+      final base64 = await _photoService.convertXFileToBase64(_selectedPhoto);
+      if (base64 == null || base64.isEmpty) {
+        print('⚠️ Erro: base64 está vazio');
+        return null;
+      }
+      print('✅ Foto convertida para base64 (${base64.length} caracteres)');
+      return base64;
+    } catch (e) {
+      print('❌ Erro ao converter foto para base64: $e');
+      return null;
+    }
   }
   
   // Construir preview da foto selecionada
@@ -256,7 +266,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         final authService = AuthService();
 
         // Converter foto para base64 antes de enviar
-        final photoBase64 = await _getPhotoBase64();
+        String? photoBase64;
+        if (_selectedPhoto != null) {
+          photoBase64 = await _getPhotoBase64();
+          if (photoBase64 == null) {
+            throw Exception('Erro ao processar foto. Tente novamente.');
+          }
+        }
         
         if (_selectedUserType == UserType.elderly) {
           // Verificar se o telefone foi preenchido (obrigatório para idosos)

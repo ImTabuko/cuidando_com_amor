@@ -36,3 +36,4 @@ echo "2. Arraste a pasta: build/web"
 echo "3. Pronto! Seu site estará online!"
 echo ""
 
+

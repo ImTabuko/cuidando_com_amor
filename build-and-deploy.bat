@@ -44,3 +44,4 @@ echo 4. Copie build\web para a raiz e faca commit
 echo.
 pause
 
+

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -31,13 +30,11 @@ class _HomeScreenState extends State<HomeScreen> {
   final PhotoService _photoService = PhotoService();
   final DataService _dataService = DataService();
   int _selectedIndex = 0;
-  bool _isLargeTextEnabled = false;
   Uint8List? _tempPhotoBytes; // Foto temporária para preview
 
   @override
   void initState() {
     super.initState();
-    _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
     _accessibilityService.addListener(_updateState);
   }
 
@@ -48,16 +45,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _updateState() {
-    setState(() {
-      _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
-    });
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final isElderly = _authService.currentUser is ElderlyUser;
-    final isCaregiver = _authService.currentUser is CaregiverUser;
-
     return Scaffold(
       appBar: AppBar(
         title: const TitleText('Cuidando com Amor', color: Colors.white),
@@ -285,7 +277,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildInfoItem('Idade', '${user.age} anos'),
             _buildInfoItem('Cidade', user.city),
             _buildInfoItem('Telefone', user.phone),
-            _buildInfoItem('Email', user.email ?? 'Não informado'),
+            _buildInfoItem('Email', user.email),
           ]),
           SizedBox(height: _accessibilityService.defaultSpacing),
           _buildInfoSection('Sobre Mim', [
@@ -382,40 +374,60 @@ class _HomeScreenState extends State<HomeScreen> {
     final photo = await _photoService.showImageSourceDialog(context);
     if (photo != null) {
       try {
+        // Carregar bytes para preview imediato
         final bytes = await photo.readAsBytes();
         setState(() {
           _tempPhotoBytes = bytes;
         });
         
+        // Converter para base64
         final base64 = await _photoService.convertXFileToBase64(photo);
-        if (base64 == null) {
-          throw Exception('Erro ao converter foto');
+        if (base64 == null || base64.isEmpty) {
+          throw Exception('Erro ao converter foto. Tente novamente.');
         }
         
         final user = _authService.currentUser;
-        if (user != null) {
-          await _updateUserPhoto(user.id, base64);
+        if (user == null) {
+          throw Exception('Usuário não encontrado');
+        }
+        
+        // Atualizar no backend
+        await _updateUserPhoto(user.id, base64);
+        
+        // Atualizar localmente
+        user.photoUrl = base64;
+        if (user is ElderlyUser) {
           user.photoUrl = base64;
-          setState(() {
-            _tempPhotoBytes = null;
-          });
-          
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Foto atualizada!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
+        } else if (user is CaregiverUser) {
+          user.photoUrl = base64;
+        }
+        
+        // Recarregar usuários do backend para garantir sincronização
+        await _dataService.reloadUsersFromApi();
+        
+        setState(() {
+          _tempPhotoBytes = null;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Foto atualizada com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
         }
       } catch (e) {
+        print('❌ Erro ao atualizar foto: $e');
         setState(() {
           _tempPhotoBytes = null;
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('Erro ao atualizar foto: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
@@ -425,13 +437,20 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _updateUserPhoto(String userId, String photoBase64) async {
     try {
       const baseUrl = 'https://cuidando-com-amor-ssud.vercel.app/api';
-      await http.put(
+      final response = await http.put(
         Uri.parse('$baseUrl/users/$userId/photo'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'photoUrl': photoBase64}),
       ).timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode != 200) {
+        throw Exception('Servidor retornou status ${response.statusCode}');
+      }
+      
+      print('✅ Foto atualizada no backend com sucesso');
     } catch (e) {
-      print('Erro ao atualizar foto: $e');
+      print('❌ Erro ao atualizar foto no backend: $e');
+      rethrow; // Re-lançar para que o erro seja tratado no método chamador
     }
   }
 

@@ -37,3 +37,4 @@ flutter build web --release
 
 E teste se o app consegue se conectar ao backend!
 
+

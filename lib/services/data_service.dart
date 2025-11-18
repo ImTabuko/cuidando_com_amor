@@ -40,6 +40,11 @@ class DataService {
     _isInitialized = true;
   }
 
+  // Método público para recarregar usuários (usado após atualizações)
+  Future<void> reloadUsersFromApi() async {
+    await _loadUsersFromApi();
+  }
+  
   Future<void> _loadUsersFromApi() async {
     try {
       final res = await http.get(Uri.parse('$_baseUrl/users')).timeout(
@@ -56,12 +61,28 @@ class DataService {
     final body = json.decode(res.body);
     final List data = body is Map && body['items'] is List ? body['items'] : (body as List);
       
-      _users.clear(); // Limpar antes de carregar
+      // Não limpar completamente - apenas atualizar/adição
+      final existingIds = _users.map((u) => u.id).toSet();
+      
     for (final item in data) {
+      final userId = (item['_id'] ?? item['id'] ?? '').toString();
       final type = (item['userType'] ?? '').toString();
+      final photoUrl = item['photoUrl']?.toString();
+      
+      // Se o usuário já existe, atualizar (especialmente photoUrl)
+      if (existingIds.contains(userId)) {
+        try {
+          final existingUser = _users.firstWhere((u) => u.id == userId);
+          existingUser.photoUrl = photoUrl;
+          continue; // Pular criação, já atualizou
+        } catch (_) {
+          // Usuário não encontrado, continuar para criar
+        }
+      }
+      
       if (type == 'caregiver') {
         _users.add(CaregiverUser(
-          id: (item['_id'] ?? item['id'] ?? '').toString(),
+          id: userId,
           fullName: (item['fullName'] ?? 'Sem nome').toString(),
           street: (item['street'] ?? '').toString(),
           neighborhood: (item['neighborhood'] ?? '').toString(),
@@ -73,11 +94,11 @@ class DataService {
           phone: (item['phone'] ?? '').toString(),
           description: (item['description'] ?? '').toString(),
           birthDate: DateTime.tryParse(item['birthDate']?.toString() ?? '') ?? DateTime(1990,1,1),
-          photoUrl: item['photoUrl']?.toString(),
+          photoUrl: photoUrl,
         ));
       } else if (type == 'elderly') {
         _users.add(ElderlyUser(
-          id: (item['_id'] ?? item['id'] ?? '').toString(),
+          id: userId,
           fullName: (item['fullName'] ?? 'Sem nome').toString(),
           street: (item['street'] ?? '').toString(),
           neighborhood: (item['neighborhood'] ?? '').toString(),
@@ -91,7 +112,7 @@ class DataService {
           careNeeds: (item['careNeeds'] ?? '').toString(),
           location: (item['location'] ?? '').toString(),
           preferredTime: (item['preferredTime'] ?? '').toString(),
-          photoUrl: item['photoUrl']?.toString(),
+          photoUrl: photoUrl,
         ));
       }
     }
@@ -339,40 +360,37 @@ class DataService {
 
   // util: envia usuário para API (ignora respostas/erros)
   Future<void> _postUserToApi(Map<String, dynamic> data) async {
-    final body = json.encode(data..removeWhere((k, v) => v == null));
-    await http
-        .post(Uri.parse('$_baseUrl/users'), headers: {'Content-Type': 'application/json; charset=utf-8'}, body: body)
-        .timeout(const Duration(seconds: 20));
-  }
-
-  // util: converte caminho de arquivo em data URI base64
-  String _encodeFileToDataUri(String path) {
     try {
-      if (kIsWeb) {
-        // No web, o path pode já ser base64 ou uma string
-        if (path.startsWith('data:image/')) {
-          return path; // Já está em base64
-        }
-        // Se não for base64, tenta ler como File (pode não funcionar no web)
-        try {
-          final file = File(path);
-          final bytes = file.readAsBytesSync();
-          final b64 = base64Encode(bytes);
-          return 'data:image/jpeg;base64,$b64';
-        } catch (_) {
-          return path; // Fallback
-        }
+      // Remover valores null, mas manter strings vazias e photoUrl
+      final cleanData = Map<String, dynamic>.from(data);
+      cleanData.removeWhere((k, v) => v == null && k != 'photoUrl');
+      
+      final body = json.encode(cleanData);
+      print('📤 Enviando usuário para API (photoUrl: ${data['photoUrl'] != null ? 'presente (${data['photoUrl'].toString().length} chars)' : 'ausente'})');
+      
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/users'),
+            headers: {'Content-Type': 'application/json; charset=utf-8'},
+            body: body,
+          )
+          .timeout(const Duration(seconds: 20));
+      
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        print('✅ Usuário criado no backend com sucesso');
+        // Recarregar usuários do backend para incluir o novo usuário
+        _loadUsersFromApi().catchError((e) {
+          print('⚠️ Erro ao recarregar usuários após criação: $e');
+        });
       } else {
-        // Mobile/Desktop: lê o arquivo normalmente
-        final file = File(path);
-        final bytes = file.readAsBytesSync();
-        final b64 = base64Encode(bytes);
-        return 'data:image/jpeg;base64,$b64';
+        print('⚠️ Servidor retornou status ${response.statusCode}');
       }
-    } catch (_) {
-      return path; // fallback
+    } catch (e) {
+      print('⚠️ Erro ao enviar usuário para API: $e');
+      // Não lança exceção - permite que o app continue funcionando localmente
     }
   }
+
 
   Future<void> logout() async {
     _currentUser = null;
