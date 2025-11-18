@@ -240,15 +240,17 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
     if (currentUser == null) return const SizedBox.shrink();
     
     final isElderly = currentUser is ElderlyUser;
+    final isCaregiver = currentUser is CaregiverUser;
     
     // Determinar se o usuário atual pode aceitar/rejeitar o match
     // Lógica: O match é criado por um cuidador oferecendo cuidados
     // Então o idoso (elderlyId) é quem pode aceitar/rejeitar
     // O cuidador (caregiverId) NUNCA pode aceitar - apenas aguarda a resposta
     // Verificação rigorosa: apenas idoso que recebeu o match pode aceitar
-    final canAcceptMatch = isElderly && 
-                          match.elderlyId == currentUser.id && 
-                          match.caregiverId != currentUser.id;
+    // IMPORTANTE: O cuidador que criou o match (caregiverId) NUNCA pode aceitar
+    final isCurrentUserElderly = isElderly && match.elderlyId == currentUser.id;
+    final isCurrentUserCaregiver = isCaregiver && match.caregiverId == currentUser.id;
+    final canAcceptMatch = isCurrentUserElderly && !isCurrentUserCaregiver;
     
     // Para matches pendentes
     if (match.status == MatchStatus.pending) {
@@ -371,19 +373,34 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
 
   Future<void> _acceptMatch(Match match) async {
     final currentUser = _authService.currentUser;
-    if (currentUser == null) return;
+    if (currentUser == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Usuário não autenticado')),
+        );
+      }
+      return;
+    }
     
-    // Verificação de segurança: apenas o idoso que recebeu o match pode aceitar
+    // Verificação de segurança RIGOROSA: apenas o idoso que recebeu o match pode aceitar
     final isElderly = currentUser is ElderlyUser;
-    final canAccept = isElderly && 
-                     match.elderlyId == currentUser.id && 
-                     match.caregiverId != currentUser.id;
+    final isCaregiver = currentUser is CaregiverUser;
+    
+    // Verificar se é o idoso que recebeu o match
+    final isElderlyRecipient = isElderly && match.elderlyId == currentUser.id;
+    
+    // Verificar se é o cuidador que criou o match (NUNCA pode aceitar)
+    final isCaregiverCreator = isCaregiver && match.caregiverId == currentUser.id;
+    
+    // Só pode aceitar se for o idoso que recebeu E não for o cuidador que criou
+    final canAccept = isElderlyRecipient && !isCaregiverCreator;
     
     if (!canAccept) {
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Você não tem permissão para aceitar este match')),
+          const SnackBar(content: Text('Apenas o idoso que recebeu o match pode aceitá-lo')),
         );
       }
       return;
@@ -394,19 +411,34 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
 
   Future<void> _rejectMatch(Match match) async {
     final currentUser = _authService.currentUser;
-    if (currentUser == null) return;
+    if (currentUser == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Usuário não autenticado')),
+        );
+      }
+      return;
+    }
     
-    // Verificação de segurança: apenas o idoso que recebeu o match pode rejeitar
+    // Verificação de segurança RIGOROSA: apenas o idoso que recebeu o match pode rejeitar
     final isElderly = currentUser is ElderlyUser;
-    final canReject = isElderly && 
-                     match.elderlyId == currentUser.id && 
-                     match.caregiverId != currentUser.id;
+    final isCaregiver = currentUser is CaregiverUser;
+    
+    // Verificar se é o idoso que recebeu o match
+    final isElderlyRecipient = isElderly && match.elderlyId == currentUser.id;
+    
+    // Verificar se é o cuidador que criou o match (NUNCA pode rejeitar)
+    final isCaregiverCreator = isCaregiver && match.caregiverId == currentUser.id;
+    
+    // Só pode rejeitar se for o idoso que recebeu E não for o cuidador que criou
+    final canReject = isElderlyRecipient && !isCaregiverCreator;
     
     if (!canReject) {
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Você não tem permissão para rejeitar este match')),
+          const SnackBar(content: Text('Apenas o idoso que recebeu o match pode rejeitá-lo')),
         );
       }
       return;
