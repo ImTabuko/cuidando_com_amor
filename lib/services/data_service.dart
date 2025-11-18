@@ -476,6 +476,24 @@ class DataService {
   }
 
   Future<Match> createMatch(String elderlyId, String caregiverId) async {
+    // Verificar se já existe um match entre esses dois usuários
+    final existingMatch = _matches.firstWhere(
+      (m) => (m.elderlyId == elderlyId && m.caregiverId == caregiverId) ||
+             (m.elderlyId == caregiverId && m.caregiverId == elderlyId),
+      orElse: () => Match(
+        matchId: '',
+        elderlyId: '',
+        caregiverId: '',
+        status: MatchStatus.rejected,
+        dataMatch: DateTime.now(),
+      ),
+    );
+    
+    if (existingMatch.matchId.isNotEmpty) {
+      print('⚠️ Match já existe: ${existingMatch.matchId}');
+      return existingMatch;
+    }
+
     final match = Match(
       matchId: _generateId(),
       elderlyId: elderlyId,
@@ -484,8 +502,9 @@ class DataService {
       dataMatch: DateTime.now(),
     );
 
-    // Tentar criar no backend
+    // Tentar criar no backend PRIMEIRO
     try {
+      print('📤 Criando match no backend: Elderly=$elderlyId, Caregiver=$caregiverId');
       final response = await http.post(
         Uri.parse('$_baseUrl/matches'),
         headers: {'Content-Type': 'application/json'},
@@ -498,21 +517,29 @@ class DataService {
       
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
+        print('✅ Match criado no backend: ${data['_id']}');
         // Usar ID do backend se disponível
         final backendMatch = Match(
-          matchId: data['_id'] ?? match.matchId,
+          matchId: (data['_id'] ?? data['id'] ?? match.matchId).toString(),
           elderlyId: elderlyId,
           caregiverId: caregiverId,
           status: MatchStatus.pending,
-          dataMatch: DateTime.now(),
+          dataMatch: DateTime.tryParse(data['createdAt']?.toString() ?? '') ?? DateTime.now(),
         );
         _matches.add(backendMatch);
+        // Recarregar matches do servidor para garantir sincronização
+        await reloadMatchesFromApi();
         return backendMatch;
+      } else {
+        print('⚠️ Backend retornou status ${response.statusCode}');
       }
-    } catch (_) {
+    } catch (e) {
+      print('❌ Erro ao criar match no backend: $e');
       // Se falhar, adiciona localmente
     }
 
+    // Adicionar localmente se não conseguiu salvar no backend
+    print('💾 Adicionando match localmente: ${match.matchId}');
     _matches.add(match);
     return match;
   }

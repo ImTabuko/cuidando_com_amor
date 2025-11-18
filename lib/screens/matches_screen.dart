@@ -317,9 +317,25 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
     // O cuidador (caregiverId) NUNCA pode aceitar - apenas aguarda a resposta
     // Verificação rigorosa: apenas idoso que recebeu o match pode aceitar
     // IMPORTANTE: O cuidador que criou o match (caregiverId) NUNCA pode aceitar
-    final isCurrentUserElderly = isElderly && match.elderlyId == currentUser.id;
-    final isCurrentUserCaregiver = isCaregiver && match.caregiverId == currentUser.id;
-    final canAcceptMatch = isCurrentUserElderly && !isCurrentUserCaregiver;
+    
+    // Verificar se o usuário atual é o idoso que recebeu o match
+    final isElderlyRecipient = isElderly && match.elderlyId == currentUser.id;
+    
+    // Verificar se o usuário atual é o cuidador que criou o match
+    final isCaregiverCreator = isCaregiver && match.caregiverId == currentUser.id;
+    
+    // Só pode aceitar se for o idoso que recebeu E NÃO for o cuidador que criou
+    // Isso garante que mesmo que por algum motivo o ID esteja errado, o cuidador nunca pode aceitar
+    final canAcceptMatch = isElderlyRecipient && !isCaregiverCreator;
+    
+    // Debug
+    print('🔍 Match ${match.matchId}:');
+    print('  - Current User ID: ${currentUser.id}');
+    print('  - Is Elderly: $isElderly, Is Caregiver: $isCaregiver');
+    print('  - Elderly ID: ${match.elderlyId}, Caregiver ID: ${match.caregiverId}');
+    print('  - Is Elderly Recipient: $isElderlyRecipient');
+    print('  - Is Caregiver Creator: $isCaregiverCreator');
+    print('  - Can Accept: $canAcceptMatch');
     
     // Para matches pendentes
     if (match.status == MatchStatus.pending) {
@@ -465,11 +481,22 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
     // Só pode aceitar se for o idoso que recebeu E não for o cuidador que criou
     final canAccept = isElderlyRecipient && !isCaregiverCreator;
     
+    print('🔐 Tentativa de aceitar match ${match.matchId}:');
+    print('  - User ID: ${currentUser.id}');
+    print('  - Is Elderly: $isElderly, Is Caregiver: $isCaregiver');
+    print('  - Elderly ID: ${match.elderlyId}, Caregiver ID: ${match.caregiverId}');
+    print('  - Is Elderly Recipient: $isElderlyRecipient');
+    print('  - Is Caregiver Creator: $isCaregiverCreator');
+    print('  - Can Accept: $canAccept');
+    
     if (!canAccept) {
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Apenas o idoso que recebeu o match pode aceitá-lo')),
+          const SnackBar(
+            content: Text('Você não pode aceitar este match. Apenas o idoso que recebeu o match pode aceitá-lo.'),
+            duration: Duration(seconds: 3),
+          ),
         );
       }
       return;
