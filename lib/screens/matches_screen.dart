@@ -43,8 +43,21 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
     setState(() => _isLoading = true);
 
     try {
-      _matches = await _matchService.getMatchesForCurrentUser(reload: reload);
+      // Garantir que os dados estão carregados
+      if (reload) {
+        await _matchService.dataService.reloadUsersFromApi();
+        await _matchService.dataService.reloadMatchesFromApi();
+      }
+      
+      _matches = await _matchService.getMatchesForCurrentUser(reload: false);
+      
+      // Debug: verificar matches encontrados
+      print('📊 Matches encontrados: ${_matches.length}');
+      for (var match in _matches) {
+        print('  - Match ID: ${match.matchId}, Elderly: ${match.elderlyId}, Caregiver: ${match.caregiverId}, Status: ${match.status}');
+      }
     } catch (e) {
+      print('❌ Erro ao carregar matches: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -188,26 +201,48 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
     // Encontrar o outro usuário no match
     User? otherUser;
     try {
+      // Garantir que os usuários estão carregados
+      await _matchService.dataService.reloadUsersFromApi();
+      
       if (isElderly) {
         otherUser = _matchService.getUserById(match.caregiverId);
+        print('🔍 Buscando cuidador ID: ${match.caregiverId}');
       } else {
         otherUser = _matchService.getUserById(match.elderlyId);
+        print('🔍 Buscando idoso ID: ${match.elderlyId}');
+      }
+      
+      if (otherUser == null) {
+        print('⚠️ Usuário não encontrado! IDs disponíveis:');
+        final allUsers = _matchService.dataService.allUsers;
+        for (var user in allUsers) {
+          print('  - ${user.id}: ${user.fullName}');
+        }
       }
     } catch (e) {
-      print('Erro ao buscar usuário: $e');
+      print('❌ Erro ao buscar usuário: $e');
       return Card(
         child: Padding(
           padding: EdgeInsets.all(_accessibilityService.largeSpacing),
-          child: BodyText('Erro ao carregar informações do match'),
+          child: BodyText('Erro ao carregar informações do match: $e'),
         ),
       );
     }
 
     if (otherUser == null) {
       return Card(
+        margin: EdgeInsets.only(bottom: _accessibilityService.defaultSpacing),
         child: Padding(
           padding: EdgeInsets.all(_accessibilityService.largeSpacing),
-          child: BodyText('Usuário não encontrado'),
+          child: Column(
+            children: [
+              BodyText('Usuário não encontrado'),
+              SizedBox(height: _accessibilityService.smallSpacing),
+              HintText('Match ID: ${match.matchId}'),
+              HintText('Elderly ID: ${match.elderlyId}'),
+              HintText('Caregiver ID: ${match.caregiverId}'),
+            ],
+          ),
         ),
       );
     }

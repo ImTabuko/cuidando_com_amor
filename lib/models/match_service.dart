@@ -10,6 +10,9 @@ class MatchService {
 
   final DataService _dataService = DataService();
   final ChatService _chatService = ChatService();
+  
+  // Expor dataService para acesso externo quando necessário
+  DataService get dataService => _dataService;
 
   // Obter todos os matches do usuário atual
   Future<List<Match>> getMatchesForCurrentUser({bool reload = false}) async {
