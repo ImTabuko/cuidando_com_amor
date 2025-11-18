@@ -73,3 +73,4 @@ Se a API do VLibras não estiver disponível ou tiver problemas:
 3. Implementar tradução automática em todas as telas principais
 4. Adicionar opção de escolher região (PB, RJ, SP, etc.)
 
+

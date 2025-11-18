@@ -113,7 +113,22 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
             future: _buildMatchCard(match),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Card(child: ListTile(title: Text('Carregando...')));
+                return Card(
+                  margin: EdgeInsets.only(bottom: _accessibilityService.defaultSpacing),
+                  child: ListTile(
+                    leading: const CircularProgressIndicator(),
+                    title: const Text('Carregando...'),
+                  ),
+                );
+              }
+              if (snapshot.hasError) {
+                return Card(
+                  margin: EdgeInsets.only(bottom: _accessibilityService.defaultSpacing),
+                  child: ListTile(
+                    leading: const Icon(Icons.error, color: Colors.red),
+                    title: Text('Erro: ${snapshot.error}'),
+                  ),
+                );
               }
               return snapshot.data ?? const SizedBox.shrink();
             },
@@ -164,18 +179,37 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
 
   Future<Widget> _buildMatchCard(Match match) async {
     final currentUser = _authService.currentUser;
+    if (currentUser == null) {
+      return const SizedBox.shrink();
+    }
+    
     final isElderly = currentUser is ElderlyUser;
     
     // Encontrar o outro usuário no match
     User? otherUser;
-    if (isElderly) {
-      otherUser = await _matchService.getUserById(match.caregiverId);
-    } else {
-      otherUser = await _matchService.getUserById(match.elderlyId);
+    try {
+      if (isElderly) {
+        otherUser = _matchService.getUserById(match.caregiverId);
+      } else {
+        otherUser = _matchService.getUserById(match.elderlyId);
+      }
+    } catch (e) {
+      print('Erro ao buscar usuário: $e');
+      return Card(
+        child: Padding(
+          padding: EdgeInsets.all(_accessibilityService.largeSpacing),
+          child: BodyText('Erro ao carregar informações do match'),
+        ),
+      );
     }
 
     if (otherUser == null) {
-      return const SizedBox.shrink();
+      return Card(
+        child: Padding(
+          padding: EdgeInsets.all(_accessibilityService.largeSpacing),
+          child: BodyText('Usuário não encontrado'),
+        ),
+      );
     }
 
     final name = otherUser.fullName;

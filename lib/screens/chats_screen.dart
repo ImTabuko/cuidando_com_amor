@@ -129,6 +129,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                     },
                   ),
                 ),
+      ),
     );
   }
 
@@ -200,7 +201,6 @@ class _ChatsScreenState extends State<ChatsScreen> {
           );
           _loadChats(); // Recarregar para atualizar contadores
         },
-      ),
       ),
     );
   }

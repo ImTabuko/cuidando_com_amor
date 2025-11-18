@@ -211,6 +211,7 @@ class _ChatScreenState extends State<ChatScreen> {
           _buildMessageInput(),
         ],
       ),
+      ),
     );
   }
 
@@ -330,7 +331,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
         ],
-      ),
       ),
     );
   }

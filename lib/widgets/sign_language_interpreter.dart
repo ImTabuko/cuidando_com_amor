@@ -209,15 +209,15 @@ class _SignLanguageInterpreterState extends State<SignLanguageInterpreter> {
   }
 
   Widget _buildVlibrasWidget(double width, double height) {
-    if (!kIsWeb) {
-      return _buildVideoIcon(width, height);
-    }
-
-    // Em web, usar HtmlElementView para embedar o widget VLibras
+    // Widget que mostra a tradução em Libras
     return Container(
       width: width,
       height: height,
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue[300]!, width: 2),
+      ),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -237,22 +237,29 @@ class _SignLanguageInterpreterState extends State<SignLanguageInterpreter> {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              'Tradução: "${widget.text}"',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Text(
+                '"${widget.text}"',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                  fontStyle: FontStyle.italic,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             ElevatedButton.icon(
               onPressed: () => _openVlibrasWebsite(),
               icon: const Icon(Icons.open_in_new, size: 16),
-              label: const Text('Abrir VLibras'),
+              label: const Text('Ver em Libras'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue[800],
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
             ),
           ],
@@ -262,14 +269,18 @@ class _SignLanguageInterpreterState extends State<SignLanguageInterpreter> {
   }
 
   void _openVlibrasWebsite() {
-    if (kIsWeb && _videoUrl != null) {
+    if (_videoUrl != null && mounted) {
+      // Mostrar mensagem informativa
       try {
-        // Usar universal_html para compatibilidade
-        // Em web, podemos usar window.open via JavaScript
-        // Por enquanto, apenas mostrar mensagem
-        print('Abrindo VLibras: $_videoUrl');
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Libras: "${widget.text}"'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
       } catch (e) {
-        print('Erro ao abrir VLibras: $e');
+        print('Erro ao mostrar mensagem: $e');
       }
     }
   }
