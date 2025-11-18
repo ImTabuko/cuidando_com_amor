@@ -75,8 +75,9 @@ class PhotoService {
   }
 
   // Mostrar dialog para escolher fonte da foto
-  Future<File?> showImageSourceDialog(BuildContext context) async {
-    return await showDialog<File?>(
+  // Retorna XFile para funcionar no web
+  Future<XFile?> showImageSourceDialog(BuildContext context) async {
+    return await showDialog<XFile?>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
@@ -84,25 +85,36 @@ class PhotoService {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Tirar Foto'),
-                onTap: () async {
-                  Navigator.of(context).pop();
-                  final file = await pickImageFromCamera();
-                  if (context.mounted) {
-                    Navigator.of(context).pop(file);
-                  }
-                },
-              ),
+              if (!kIsWeb) // Câmera não funciona bem no web
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Tirar Foto'),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    final xfile = await _picker.pickImage(
+                      source: ImageSource.camera,
+                      maxWidth: 800,
+                      maxHeight: 800,
+                      imageQuality: 80,
+                    );
+                    if (context.mounted && xfile != null) {
+                      Navigator.of(context).pop(xfile);
+                    }
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.photo_library),
-                title: const Text('Escolher da Galeria'),
+                title: Text(kIsWeb ? 'Escolher Arquivo' : 'Escolher da Galeria'),
                 onTap: () async {
                   Navigator.of(context).pop();
-                  final file = await pickImageFromGallery();
-                  if (context.mounted) {
-                    Navigator.of(context).pop(file);
+                  final xfile = await _picker.pickImage(
+                    source: ImageSource.gallery,
+                    maxWidth: 800,
+                    maxHeight: 800,
+                    imageQuality: 80,
+                  );
+                  if (context.mounted && xfile != null) {
+                    Navigator.of(context).pop(xfile);
                   }
                 },
               ),
@@ -117,6 +129,20 @@ class PhotoService {
         );
       },
     );
+  }
+  
+  // Converter XFile para base64 (funciona no web e mobile)
+  Future<String?> convertXFileToBase64(XFile? xfile) async {
+    if (xfile == null) return null;
+    try {
+      final bytes = await xfile.readAsBytes();
+      final base64 = base64Encode(bytes);
+      final mimeType = xfile.mimeType ?? 'image/jpeg';
+      return 'data:$mimeType;base64,$base64';
+    } catch (e) {
+      print('Erro ao converter imagem para base64: $e');
+      return null;
+    }
   }
 
   // Widget para exibir foto de perfil

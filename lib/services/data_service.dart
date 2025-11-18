@@ -251,7 +251,7 @@ class DataService {
         'location': location,
         'preferredTime': preferredTime,
         'userType': 'elderly',
-        'photoUrl': photoUrl != null ? _encodeFileToDataUri(photoUrl) : null,
+        'photoUrl': photoUrl, // Já vem em base64 do registro
       });
     } catch (_) {}
 
@@ -309,7 +309,7 @@ class DataService {
         'birthDate': birthDate.toIso8601String(),
         'description': description,
         'userType': 'caregiver',
-        'photoUrl': photoUrl != null ? _encodeFileToDataUri(photoUrl) : null,
+        'photoUrl': photoUrl, // Já vem em base64 do registro
       });
     } catch (_) {}
 

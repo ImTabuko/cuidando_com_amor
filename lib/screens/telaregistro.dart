@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
 import '../models/auth_service.dart';
 import '../models/user.dart';
 import '../widgets/custom_text_field.dart';
@@ -23,7 +25,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final PhotoService _photoService = PhotoService();
   UserType _selectedUserType = UserType.elderly;
   bool _isLoading = false;
-  File? _selectedPhoto;
+  XFile? _selectedPhoto;
+  Uint8List? _photoBytes; // Armazenar bytes da foto para preview
 
   // Controllers para campos comuns
   final _fullNameController = TextEditingController();
@@ -167,11 +170,79 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   Future<void> _selectPhoto() async {
     final photo = await _photoService.showImageSourceDialog(context);
     if (photo != null) {
-      setState(() {
-        _selectedPhoto = photo;
-      });
-      // Adicionar log para debug
-      print('Foto selecionada: ${_selectedPhoto?.path}');
+      try {
+        final bytes = await photo.readAsBytes();
+        if (mounted) {
+          setState(() {
+            _selectedPhoto = photo;
+            _photoBytes = bytes;
+          });
+        }
+      } catch (e) {
+        print('Erro ao carregar foto: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao carregar foto')),
+          );
+        }
+      }
+    }
+  }
+  
+  // Converter foto para base64 antes de enviar
+  Future<String?> _getPhotoBase64() async {
+    if (_selectedPhoto == null) return null;
+    return await _photoService.convertXFileToBase64(_selectedPhoto);
+  }
+  
+  // Construir preview da foto selecionada
+  Widget _buildPhotoPreview() {
+    if (_photoBytes == null) {
+      return CircleAvatar(
+        radius: _accessibilityService.isLargeTextEnabled ? 60 : 50,
+        backgroundColor: Colors.grey[300],
+        child: const CircularProgressIndicator(),
+      );
+    }
+    
+    try {
+      return Stack(
+        clipBehavior: Clip.none,
+        children: [
+          CircleAvatar(
+            radius: _accessibilityService.isLargeTextEnabled ? 60 : 50,
+            backgroundImage: MemoryImage(_photoBytes!),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: Colors.pink,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: const Icon(
+                Icons.camera_alt,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+        ],
+      );
+    } catch (e) {
+      print('Erro ao exibir preview: $e');
+      return CircleAvatar(
+        radius: _accessibilityService.isLargeTextEnabled ? 60 : 50,
+        backgroundColor: Colors.grey[300],
+        child: Icon(
+          Icons.person,
+          size: _accessibilityService.isLargeTextEnabled ? 48 : 40,
+          color: Colors.grey[600],
+        ),
+      );
     }
   }
 
@@ -184,6 +255,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       try {
         final authService = AuthService();
 
+        // Converter foto para base64 antes de enviar
+        final photoBase64 = await _getPhotoBase64();
+        
         if (_selectedUserType == UserType.elderly) {
           // Verificar se o telefone foi preenchido (obrigatório para idosos)
           if (_elderlyPhoneController.text.isEmpty) {
@@ -204,7 +278,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             careNeeds: _selectedCareNeeds.join(', '),
             location: _selectedLocation,
             preferredTime: _selectedSchedule,
-            photoUrl: _selectedPhoto?.path,
+            photoUrl: photoBase64,
           );
         } else {
           // Verificar se o telefone foi preenchido (obrigatório para cuidadores)
@@ -224,7 +298,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             phone: _phoneController.text,
             birthDate: _caregiverBirthDate,
             description: _selectedFormations.join(', '),
-            photoUrl: _selectedPhoto?.path,
+            photoUrl: photoBase64,
           );
         }
 
@@ -319,39 +393,18 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         textAlign: TextAlign.center,
                       ),
                       SizedBox(height: _accessibilityService.smallSpacing),
-                      GestureDetector(
-                        onTap: _selectPhoto,
-                        child: _selectedPhoto != null
-                          ? Stack(
-                              children: [
-                                CircleAvatar(
-                                  radius: _accessibilityService.isLargeTextEnabled ? 60 : 50,
-                                  backgroundImage: FileImage(_selectedPhoto!),
-                                ),
-                                Positioned(
-                                  bottom: 0,
-                                  right: 0,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.pink,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 2),
-                                    ),
-                                    child: const Icon(
-                                      Icons.camera_alt,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : _photoService.buildProfilePhoto(
-                              photoUrl: null,
-                              radius: _accessibilityService.isLargeTextEnabled ? 60 : 50,
-                              onTap: _selectPhoto,
-                              showEditIcon: true,
-                            ),
+                      Center(
+                        child: GestureDetector(
+                          onTap: _selectPhoto,
+                          child: _selectedPhoto != null && _photoBytes != null
+                            ? _buildPhotoPreview()
+                            : _photoService.buildProfilePhoto(
+                                photoUrl: null,
+                                radius: _accessibilityService.isLargeTextEnabled ? 60 : 50,
+                                onTap: _selectPhoto,
+                                showEditIcon: true,
+                              ),
+                        ),
                       ),
                       SizedBox(height: _accessibilityService.smallSpacing),
                       BodyText(

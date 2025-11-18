@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../models/user.dart';
 import '../models/auth_service.dart';
 import '../services/accessibility_service.dart';
 import '../services/photo_service.dart';
+import '../services/data_service.dart';
 import '../widgets/accessible_text.dart';
 import 'available_caregivers_screen.dart';
 import 'available_elderlies_screen.dart';
@@ -24,8 +29,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final AuthService _authService = AuthService();
   final AccessibilityService _accessibilityService = AccessibilityService();
   final PhotoService _photoService = PhotoService();
+  final DataService _dataService = DataService();
   int _selectedIndex = 0;
   bool _isLargeTextEnabled = false;
+  Uint8List? _tempPhotoBytes; // Foto temporária para preview
 
   @override
   void initState() {
@@ -182,10 +189,37 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(height: _accessibilityService.defaultSpacing),
-          _photoService.buildProfilePhoto(
-            photoUrl: user.photoUrl,
-            radius: _accessibilityService.isLargeTextEnabled ? 80 : 60,
-            showEditIcon: false,
+          GestureDetector(
+            onTap: _changeProfilePhoto,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _tempPhotoBytes != null
+                    ? CircleAvatar(
+                        radius: _accessibilityService.isLargeTextEnabled ? 80 : 60,
+                        backgroundImage: MemoryImage(_tempPhotoBytes!),
+                      )
+                    : _photoService.buildProfilePhoto(
+                        photoUrl: user.photoUrl,
+                        radius: _accessibilityService.isLargeTextEnabled ? 80 : 60,
+                        showEditIcon: true,
+                        onTap: _changeProfilePhoto,
+                      ),
+              ],
+            ),
+          ),
+          SizedBox(height: _accessibilityService.smallSpacing),
+          ElevatedButton.icon(
+            onPressed: _changeProfilePhoto,
+            icon: const Icon(Icons.camera_alt, size: 18),
+            label: const ButtonText('Alterar Foto', color: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              padding: EdgeInsets.symmetric(
+                horizontal: _accessibilityService.defaultSpacing,
+                vertical: _accessibilityService.smallSpacing,
+              ),
+            ),
           ),
           SizedBox(height: _accessibilityService.defaultSpacing),
           TitleText(
@@ -342,6 +376,63 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _changeProfilePhoto() async {
+    final photo = await _photoService.showImageSourceDialog(context);
+    if (photo != null) {
+      try {
+        final bytes = await photo.readAsBytes();
+        setState(() {
+          _tempPhotoBytes = bytes;
+        });
+        
+        final base64 = await _photoService.convertXFileToBase64(photo);
+        if (base64 == null) {
+          throw Exception('Erro ao converter foto');
+        }
+        
+        final user = _authService.currentUser;
+        if (user != null) {
+          await _updateUserPhoto(user.id, base64);
+          user.photoUrl = base64;
+          setState(() {
+            _tempPhotoBytes = null;
+          });
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Foto atualizada!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        setState(() {
+          _tempPhotoBytes = null;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
+  
+  Future<void> _updateUserPhoto(String userId, String photoBase64) async {
+    try {
+      const baseUrl = 'https://cuidando-com-amor-ssud.vercel.app/api';
+      await http.put(
+        Uri.parse('$baseUrl/users/$userId/photo'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'photoUrl': photoBase64}),
+      ).timeout(const Duration(seconds: 10));
+    } catch (e) {
+      print('Erro ao atualizar foto: $e');
+    }
   }
 
   void _logout() {

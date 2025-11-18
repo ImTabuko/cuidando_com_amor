@@ -8,7 +8,7 @@ abstract class User {
   final String city; // Cidade
   final String state; // Estado
   final UserType userType;
-  final String? photoUrl;
+  String? photoUrl; // Não final para permitir atualização
 
   User({
     required this.id,
@@ -34,7 +34,8 @@ class ElderlyUser extends User {
   final String careNeeds;
   final String location; // 'Casa' ou 'Hospital'
   final String preferredTime; // 'Manhã', 'Tarde' ou 'Noite'
-  final String? photoUrl;
+  @override
+  String? photoUrl;
 
   ElderlyUser({
     required super.id,
@@ -73,7 +74,8 @@ class CaregiverUser extends User {
   final String phone;
   final String description;
   final DateTime birthDate;
-  final String? photoUrl;
+  @override
+  String? photoUrl;
 
   CaregiverUser({
     required super.id,
