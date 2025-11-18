@@ -128,13 +128,17 @@ class _LoginScreenState extends State<LoginScreen> {
         appBar: AppBar(
           automaticallyImplyLeading: false,
           backgroundColor: AppColors.primary,
-          toolbarHeight: 120,
-          flexibleSpace: SafeArea(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: AppLogo(
-                  width: _accessibilityService.isLargeTextEnabled ? 200 : 160,
+          toolbarHeight: 100,
+          elevation: 0,
+          flexibleSpace: Container(
+            color: AppColors.primary,
+            child: SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                  child: AppLogo(
+                    width: _accessibilityService.isLargeTextEnabled ? 180 : 150,
+                  ),
                 ),
               ),
             ),

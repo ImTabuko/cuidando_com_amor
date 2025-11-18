@@ -28,7 +28,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     // Configurar animações
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 1500),
     );
     
     _fadeAnimation = Tween<double>(
@@ -40,23 +40,27 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     ));
     
     _scaleAnimation = Tween<double>(
-      begin: 0.3,
+      begin: 0.0,
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: _animationController,
-      curve: const Interval(0.0, 0.8, curve: Curves.elasticOut),
+      curve: Curves.elasticOut,
     ));
     
     _rotationAnimation = Tween<double>(
-      begin: -0.2,
+      begin: -0.3,
       end: 0.0,
     ).animate(CurvedAnimation(
       parent: _animationController,
-      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      curve: Curves.easeOutBack,
     ));
     
-    // Iniciar animação
-    _animationController.forward();
+    // Iniciar animação com delay para garantir que a tela está pronta
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        _animationController.forward();
+      }
+    });
     
     _initializeApp();
   }
@@ -132,8 +136,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             AnimatedBuilder(
               animation: _animationController,
               builder: (context, child) {
-                return FadeTransition(
-                  opacity: _fadeAnimation,
+                return Opacity(
+                  opacity: _fadeAnimation.value,
                   child: Transform.scale(
                     scale: _scaleAnimation.value,
                     child: Transform.rotate(
@@ -142,9 +146,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         decoration: BoxDecoration(
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2 * _fadeAnimation.value),
-                              blurRadius: 20,
-                              spreadRadius: 5,
+                              color: Colors.black.withOpacity(0.3 * _fadeAnimation.value),
+                              blurRadius: 30,
+                              spreadRadius: 10,
                             ),
                           ],
                         ),
