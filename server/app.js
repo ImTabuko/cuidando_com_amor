@@ -414,6 +414,109 @@ app.put('/api/chats/:chatId/messages/read', async (req, res) => {
   }
 });
 
+// ========== ENDPOINTS DE ADMINISTRAÇÃO ==========
+
+// DELETE - Limpar TODOS os dados do banco (CUIDADO!)
+// Use apenas em desenvolvimento ou com autenticação adequada
+app.delete('/api/admin/clear-all', async (req, res) => {
+  try {
+    const { key } = req.query;
+    // Proteção simples - use uma chave secreta
+    const secretKey = process.env.ADMIN_KEY || 'admin123';
+    
+    if (key !== secretKey) {
+      return res.status(403).json({ error: 'Acesso negado. Chave inválida.' });
+    }
+    
+    // Deletar tudo
+    const usersDeleted = await User.deleteMany({});
+    const matchesDeleted = await Match.deleteMany({});
+    const chatsDeleted = await Chat.deleteMany({});
+    const messagesDeleted = await Message.deleteMany({});
+    
+    res.json({
+      success: true,
+      message: 'Banco de dados limpo com sucesso',
+      deleted: {
+        users: usersDeleted.deletedCount,
+        matches: matchesDeleted.deletedCount,
+        chats: chatsDeleted.deletedCount,
+        messages: messagesDeleted.deletedCount,
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE - Limpar apenas usuários
+app.delete('/api/admin/clear-users', async (req, res) => {
+  try {
+    const { key } = req.query;
+    const secretKey = process.env.ADMIN_KEY || 'admin123';
+    
+    if (key !== secretKey) {
+      return res.status(403).json({ error: 'Acesso negado. Chave inválida.' });
+    }
+    
+    const result = await User.deleteMany({});
+    res.json({
+      success: true,
+      message: 'Usuários deletados com sucesso',
+      deleted: result.deletedCount
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE - Limpar apenas matches
+app.delete('/api/admin/clear-matches', async (req, res) => {
+  try {
+    const { key } = req.query;
+    const secretKey = process.env.ADMIN_KEY || 'admin123';
+    
+    if (key !== secretKey) {
+      return res.status(403).json({ error: 'Acesso negado. Chave inválida.' });
+    }
+    
+    const result = await Match.deleteMany({});
+    res.json({
+      success: true,
+      message: 'Matches deletados com sucesso',
+      deleted: result.deletedCount
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE - Limpar apenas chats e mensagens
+app.delete('/api/admin/clear-chats', async (req, res) => {
+  try {
+    const { key } = req.query;
+    const secretKey = process.env.ADMIN_KEY || 'admin123';
+    
+    if (key !== secretKey) {
+      return res.status(403).json({ error: 'Acesso negado. Chave inválida.' });
+    }
+    
+    const chatsDeleted = await Chat.deleteMany({});
+    const messagesDeleted = await Message.deleteMany({});
+    
+    res.json({
+      success: true,
+      message: 'Chats e mensagens deletados com sucesso',
+      deleted: {
+        chats: chatsDeleted.deletedCount,
+        messages: messagesDeleted.deletedCount,
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server rodando na porta ${PORT}`);
