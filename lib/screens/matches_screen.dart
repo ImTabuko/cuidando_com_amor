@@ -91,6 +91,7 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
                 _buildMatchList(MatchStatus.rejected),
               ],
             ),
+      ),
     );
   }
 
@@ -101,7 +102,7 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
       return _buildEmptyState(status);
     }
 
-      return RefreshIndicator(
+    return RefreshIndicator(
       onRefresh: () => _loadMatches(reload: true),
       child: ListView.builder(
         padding: EdgeInsets.all(_accessibilityService.largeSpacing),
@@ -118,7 +119,6 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
             },
           );
         },
-      ),
       ),
     );
   }
@@ -244,8 +244,11 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
     // Determinar se o usuário atual pode aceitar/rejeitar o match
     // Lógica: O match é criado por um cuidador oferecendo cuidados
     // Então o idoso (elderlyId) é quem pode aceitar/rejeitar
-    // O cuidador (caregiverId) apenas aguarda a resposta
-    final canAcceptMatch = isElderly && match.elderlyId == currentUser.id;
+    // O cuidador (caregiverId) NUNCA pode aceitar - apenas aguarda a resposta
+    // Verificação rigorosa: apenas idoso que recebeu o match pode aceitar
+    final canAcceptMatch = isElderly && 
+                          match.elderlyId == currentUser.id && 
+                          match.caregiverId != currentUser.id;
     
     // Para matches pendentes
     if (match.status == MatchStatus.pending) {
@@ -367,10 +370,48 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
   }
 
   Future<void> _acceptMatch(Match match) async {
+    final currentUser = _authService.currentUser;
+    if (currentUser == null) return;
+    
+    // Verificação de segurança: apenas o idoso que recebeu o match pode aceitar
+    final isElderly = currentUser is ElderlyUser;
+    final canAccept = isElderly && 
+                     match.elderlyId == currentUser.id && 
+                     match.caregiverId != currentUser.id;
+    
+    if (!canAccept) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Você não tem permissão para aceitar este match')),
+        );
+      }
+      return;
+    }
+    
     await _updateMatchStatus(match, MatchStatus.accepted, 'Match aceito com sucesso!');
   }
 
   Future<void> _rejectMatch(Match match) async {
+    final currentUser = _authService.currentUser;
+    if (currentUser == null) return;
+    
+    // Verificação de segurança: apenas o idoso que recebeu o match pode rejeitar
+    final isElderly = currentUser is ElderlyUser;
+    final canReject = isElderly && 
+                     match.elderlyId == currentUser.id && 
+                     match.caregiverId != currentUser.id;
+    
+    if (!canReject) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Você não tem permissão para rejeitar este match')),
+        );
+      }
+      return;
+    }
+    
     await _updateMatchStatus(match, MatchStatus.rejected, 'Match rejeitado');
   }
 
