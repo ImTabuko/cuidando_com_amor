@@ -42,14 +42,16 @@ class _CaregiverProfileScreenState extends State<CaregiverProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false, // Desabilita botão de voltar do Android
-      child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          title: TitleText('Perfil do Cuidador', color: Colors.white),
-          backgroundColor: Colors.blue[800],
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
         ),
+        title: TitleText('Perfil do Cuidador', color: Colors.white),
+        backgroundColor: Colors.blue[800],
+      ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
@@ -74,7 +76,6 @@ class _CaregiverProfileScreenState extends State<CaregiverProfileScreen> {
                   ],
                 ),
               ),
-      ),
     );
   }
 

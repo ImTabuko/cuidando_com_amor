@@ -19,12 +19,14 @@ class _ElderlyProfileScreenState extends State<ElderlyProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false, // Desabilita botão de voltar do Android
-      child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-        title: const Text('Perfil do Idoso'),
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
+        ),
+        title: const Text('Perfil do Idoso', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.blue[800],
       ),
       body: _isLoading
@@ -53,7 +55,6 @@ class _ElderlyProfileScreenState extends State<ElderlyProfileScreen> {
                 ],
               ),
             ),
-      ),
     );
   }
 
