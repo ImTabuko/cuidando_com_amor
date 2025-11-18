@@ -151,6 +151,7 @@ class _ElderlyProfileScreenState extends State<ElderlyProfileScreen> {
 
   Future<void> _createMatch() async {
     if (_authService.currentUser is! CaregiverUser) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Apenas cuidadores podem oferecer cuidados')),
       );
@@ -167,6 +168,7 @@ class _ElderlyProfileScreenState extends State<ElderlyProfileScreen> {
       await _matchService.createMatch(widget.elderly.id, caregiver.id);
       
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Oferta enviada com sucesso!')),
         );
@@ -174,6 +176,7 @@ class _ElderlyProfileScreenState extends State<ElderlyProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro: ${e.toString()}')),
         );

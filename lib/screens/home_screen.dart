@@ -414,6 +414,7 @@ class _HomeScreenState extends State<HomeScreen> {
         });
         
         if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Foto atualizada com sucesso!'),
@@ -427,6 +428,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _tempPhotoBytes = null;
         });
         if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Erro ao atualizar foto: ${e.toString()}'),

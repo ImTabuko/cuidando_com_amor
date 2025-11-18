@@ -56,6 +56,7 @@ class _AvailableCaregiversScreenState extends State<AvailableCaregiversScreen> {
         _availableCaregivers = [];
       }
     } catch (e) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao carregar cuidadores: ${e.toString()}')),
       );

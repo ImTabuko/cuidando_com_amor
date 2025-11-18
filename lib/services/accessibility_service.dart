@@ -12,6 +12,7 @@ class AccessibilityService {
   bool _reduceMotionEnabled = false;
   bool _hapticFeedbackEnabled = true;
   bool _screenReaderEnabled = false;
+  bool _signLanguageEnabled = false;
 
   // Getters
   bool get isLargeTextEnabled => _isLargeTextEnabled;
@@ -19,6 +20,7 @@ class AccessibilityService {
   bool get reduceMotionEnabled => _reduceMotionEnabled;
   bool get hapticFeedbackEnabled => _hapticFeedbackEnabled;
   bool get screenReaderEnabled => _screenReaderEnabled;
+  bool get signLanguageEnabled => _signLanguageEnabled;
 
   // Detectar configurações do sistema (apenas leitor de tela e animações)
   // Não sobrescreve configurações manuais de texto grande e alto contraste
@@ -95,6 +97,26 @@ class AccessibilityService {
   void toggleHapticFeedback() {
     _hapticFeedbackEnabled = !_hapticFeedbackEnabled;
     _notifyListeners();
+  }
+
+  // Toggle para língua de sinais
+  void toggleSignLanguage() {
+    _signLanguageEnabled = !_signLanguageEnabled;
+    _notifyListeners();
+  }
+
+  void enableSignLanguage() {
+    if (!_signLanguageEnabled) {
+      _signLanguageEnabled = true;
+      _notifyListeners();
+    }
+  }
+
+  void disableSignLanguage() {
+    if (_signLanguageEnabled) {
+      _signLanguageEnabled = false;
+      _notifyListeners();
+    }
   }
 
   // Tamanhos de texto que respeitam o sistema

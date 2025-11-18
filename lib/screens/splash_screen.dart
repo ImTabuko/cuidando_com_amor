@@ -12,15 +12,59 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
   final AccessibilityService _accessibilityService = AccessibilityService();
   final DataService _dataService = DataService();
   String _status = 'Carregando...';
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
 
   @override
   void initState() {
     super.initState();
+    
+    // Configurar animações
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    );
+    
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeIn,
+    ));
+    
+    _scaleAnimation = Tween<double>(
+      begin: 0.3,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.0, 0.8, curve: Curves.elasticOut),
+    ));
+    
+    _rotationAnimation = Tween<double>(
+      begin: -0.2,
+      end: 0.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+    ));
+    
+    // Iniciar animação
+    _animationController.forward();
+    
     _initializeApp();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   void _initializeApp() async {
@@ -84,31 +128,66 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo completa
-            AppLogo(
-              width: _accessibilityService.isLargeTextEnabled ? 320 : 280,
+            // Logo com animações
+            AnimatedBuilder(
+              animation: _animationController,
+              builder: (context, child) {
+                return FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Transform.scale(
+                    scale: _scaleAnimation.value,
+                    child: Transform.rotate(
+                      angle: _rotationAnimation.value,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2 * _fadeAnimation.value),
+                              blurRadius: 20,
+                              spreadRadius: 5,
+                            ),
+                          ],
+                        ),
+                        child: AppLogo(
+                          width: _accessibilityService.isLargeTextEnabled ? 320 : 280,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
             SizedBox(height: _accessibilityService.largeSpacing * 2),
             
-            BodyText(
-              'Conectando cuidadores e idosos',
-              color: AppColors.white.withOpacity(0.9),
-              textAlign: TextAlign.center,
+            // Texto com animação de fade
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: BodyText(
+                'Conectando cuidadores e idosos',
+                color: AppColors.white.withOpacity(0.9),
+                textAlign: TextAlign.center,
+              ),
             ),
             SizedBox(height: _accessibilityService.largeSpacing * 2),
             
-            // Indicador de carregamento
-            CircularProgressIndicator(
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.white),
-              strokeWidth: _accessibilityService.isLargeTextEnabled ? 4.0 : 3.0,
+            // Indicador de carregamento com animação
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: CircularProgressIndicator(
+                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.white),
+                strokeWidth: _accessibilityService.isLargeTextEnabled ? 4.0 : 3.0,
+              ),
             ),
             SizedBox(height: _accessibilityService.defaultSpacing),
             
-            // Status de conexão
-            BodyText(
-              _status,
-              color: AppColors.white.withOpacity(0.7),
-              textAlign: TextAlign.center,
+            // Status de conexão com animação
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: BodyText(
+                _status,
+                color: AppColors.white.withOpacity(0.7),
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
         ),

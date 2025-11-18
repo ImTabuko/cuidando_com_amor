@@ -46,6 +46,7 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
       _matches = await _matchService.getMatchesForCurrentUser(reload: reload);
     } catch (e) {
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao carregar matches: ${e.toString()}')),
         );
@@ -350,12 +351,14 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
       await _loadMatches();
       
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(successMessage)),
         );
       }
     } catch (e) {
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro: ${e.toString()}')),
         );

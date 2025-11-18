@@ -52,6 +52,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
       _chats = await _chatService.getChatsForCurrentUser();
     } catch (e) {
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao carregar chats: ${e.toString()}')),
         );

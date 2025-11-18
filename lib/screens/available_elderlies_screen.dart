@@ -38,6 +38,7 @@ class _AvailableElderliesScreenState extends State<AvailableElderliesScreen> {
         _availableElderlies = [];
       }
     } catch (e) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao carregar idosos: ${e.toString()}')),
       );

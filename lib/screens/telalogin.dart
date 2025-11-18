@@ -6,6 +6,7 @@ import '../services/data_service.dart';
 import '../widgets/accessible_text.dart';
 import '../utils/app_colors.dart';
 import '../widgets/app_logo.dart';
+import '../widgets/sign_language_interpreter.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,15 +22,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final AccessibilityService _accessibilityService = AccessibilityService();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
-  bool _isLargeTextEnabled = false;
   bool _loginByPhone = false; // Nova opção de login por telefone
 
   @override
   void initState() {
     super.initState();
-    // Simplificado - não adiciona listener que pode travar
-    _isLargeTextEnabled = false; // Inicializa como false
-    
     // Tentar auto-login em background (sem bloquear)
     Future.microtask(() => _tryAutoLogin());
   }
@@ -84,6 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
 
         if (success && mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Login realizado com sucesso!'),
@@ -93,6 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
           // Navegar para a tela principal após login bem-sucedido
           Navigator.pushReplacementNamed(context, '/home');
         } else if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(_loginByPhone ? 'Telefone ou senha incorretos' : 'Email ou senha incorretos'),
@@ -102,6 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } catch (e) {
         if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Erro: ${e.toString()}'),
@@ -124,24 +124,32 @@ class _LoginScreenState extends State<LoginScreen> {
     return PopScope(
       canPop: false, // Desabilita botão de voltar do Android
       child: Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(_accessibilityService.largeSpacing),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(height: _accessibilityService.largeSpacing * 2),
-                // Logo e título
-                Center(
-                  child: AppLogo(
-                    width: _accessibilityService.isLargeTextEnabled ? 280 : 240,
-                  ),
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: AppColors.primary,
+          toolbarHeight: 120,
+          flexibleSpace: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: AppLogo(
+                  width: _accessibilityService.isLargeTextEnabled ? 200 : 160,
                 ),
-                SizedBox(height: _accessibilityService.defaultSpacing),
+              ),
+            ),
+          ),
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(_accessibilityService.largeSpacing),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(height: _accessibilityService.defaultSpacing),
                 
                 FittedBox(
                   fit: BoxFit.scaleDown,
@@ -149,6 +157,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     'Bem-vindo!',
                     color: Colors.black87,
                     textAlign: TextAlign.center,
+                  ),
+                ),
+                SizedBox(height: _accessibilityService.smallSpacing),
+                
+                // Intérprete de Libras (se ativado)
+                Center(
+                  child: SignLanguageInterpreter(
+                    text: 'Bem-vindo! Faça login para continuar',
+                    width: 180,
+                    height: 120,
                   ),
                 ),
                 SizedBox(height: _accessibilityService.smallSpacing),

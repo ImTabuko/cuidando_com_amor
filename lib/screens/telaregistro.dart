@@ -116,6 +116,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   Future<void> _searchCEP() async {
     final cep = _cepController.text.replaceAll(RegExp(r'[^0-9]'), '');
     if (cep.length != 8) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('CEP inválido')),
       );
@@ -153,12 +154,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       }
       
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Endereço preenchido automaticamente!')),
         );
       }
     } else {
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('CEP não encontrado')),
         );
@@ -203,20 +206,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         });
       }
       
-      // Mostrar feedback visual
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Foto selecionada!'),
-            duration: Duration(seconds: 1),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+          // Mostrar feedback visual
+          if (mounted) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Foto selecionada!'),
+                duration: Duration(seconds: 1),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
     } catch (e, stackTrace) {
       print('❌ Erro ao selecionar foto: $e');
       print('❌ Stack trace: $stackTrace');
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro ao carregar foto: $e'),
@@ -387,6 +392,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         }
 
         if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -402,6 +408,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         }
       } catch (e) {
         if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Erro: ${e.toString()}'),

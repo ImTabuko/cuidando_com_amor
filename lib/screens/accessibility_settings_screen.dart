@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/accessibility_service.dart';
+import '../services/sign_language_service.dart';
 import '../widgets/accessible_text.dart';
 import '../widgets/accessible_card.dart';
 import '../widgets/accessible_button.dart';
@@ -14,6 +15,7 @@ class AccessibilitySettingsScreen extends StatefulWidget {
 
 class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScreen> {
   final AccessibilityService _accessibilityService = AccessibilityService();
+  final SignLanguageService _signLanguageService = SignLanguageService();
 
   @override
   void initState() {
@@ -118,6 +120,32 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
             ),
           ),
 
+          SizedBox(height: _accessibilityService.smallSpacing),
+
+          // Língua de Sinais (Libras)
+          AccessibleCard(
+            semanticLabel: 'Ativar tradução para Libras',
+            hint: 'Traduz textos para Língua Brasileira de Sinais',
+            child: SwitchListTile(
+              title: const BodyText('Língua de Sinais (Libras)'),
+              subtitle: const HintText(
+                'Traduz textos do aplicativo para Libras usando VLibras',
+                color: Colors.grey,
+              ),
+              value: _accessibilityService.signLanguageEnabled,
+              onChanged: (value) {
+                _accessibilityService.mediumImpact();
+                if (value) {
+                  _accessibilityService.enableSignLanguage();
+                  _signLanguageService.enable();
+                } else {
+                  _accessibilityService.disableSignLanguage();
+                  _signLanguageService.disable();
+                }
+              },
+            ),
+          ),
+
           SizedBox(height: _accessibilityService.largeSpacing),
           
           Semantics(
@@ -160,6 +188,10 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
                     SizedBox(height: _accessibilityService.smallSpacing),
                     BodyText(
                       'Feedback Tátil: ${_accessibilityService.hapticFeedbackEnabled ? "Ativado" : "Desativado"}',
+                    ),
+                    SizedBox(height: _accessibilityService.smallSpacing),
+                    BodyText(
+                      'Língua de Sinais: ${_accessibilityService.signLanguageEnabled ? "Ativado" : "Desativado"}',
                     ),
                   ],
                 ),
@@ -209,6 +241,11 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
                 SizedBox(height: _accessibilityService.smallSpacing),
                 BodyText(
                   '• Navegação: Use gestos de deslizar para navegar entre elementos',
+                  fontWeight: FontWeight.w500,
+                ),
+                SizedBox(height: _accessibilityService.smallSpacing),
+                BodyText(
+                  '• Língua de Sinais: Ative para ver traduções em Libras usando a API VLibras',
                   fontWeight: FontWeight.w500,
                 ),
               ],
