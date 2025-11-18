@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
@@ -77,9 +76,10 @@ class PhotoService {
   // Mostrar dialog para escolher fonte da foto
   // Retorna XFile para funcionar no web
   Future<XFile?> showImageSourceDialog(BuildContext context) async {
-    return await showDialog<XFile?>(
+    // Mostrar dialog para escolher a fonte
+    final sourceResult = await showDialog<ImageSource?>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Selecionar Foto'),
           content: Column(
@@ -89,46 +89,43 @@ class PhotoService {
                 ListTile(
                   leading: const Icon(Icons.camera_alt),
                   title: const Text('Tirar Foto'),
-                  onTap: () async {
-                    Navigator.of(context).pop();
-                    final xfile = await _picker.pickImage(
-                      source: ImageSource.camera,
-                      maxWidth: 800,
-                      maxHeight: 800,
-                      imageQuality: 80,
-                    );
-                    if (context.mounted && xfile != null) {
-                      Navigator.of(context).pop(xfile);
-                    }
-                  },
+                  onTap: () => Navigator.of(dialogContext).pop(ImageSource.camera),
                 ),
               ListTile(
                 leading: const Icon(Icons.photo_library),
                 title: Text(kIsWeb ? 'Escolher Arquivo' : 'Escolher da Galeria'),
-                onTap: () async {
-                  Navigator.of(context).pop();
-                  final xfile = await _picker.pickImage(
-                    source: ImageSource.gallery,
-                    maxWidth: 800,
-                    maxHeight: 800,
-                    imageQuality: 80,
-                  );
-                  if (context.mounted && xfile != null) {
-                    Navigator.of(context).pop(xfile);
-                  }
-                },
+                onTap: () => Navigator.of(dialogContext).pop(ImageSource.gallery),
               ),
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(null),
               child: const Text('Cancelar'),
             ),
           ],
         );
       },
     );
+    
+    // Se o usuário cancelou ou não escolheu, retornar null
+    if (sourceResult == null) {
+      return null;
+    }
+    
+    // Agora pegar a imagem com a fonte escolhida
+    try {
+      final xfile = await _picker.pickImage(
+        source: sourceResult,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 80,
+      );
+      return xfile;
+    } catch (e) {
+      print('Erro ao pegar imagem: $e');
+      return null;
+    }
   }
   
   // Converter XFile para base64 (funciona no web e mobile)
@@ -164,7 +161,6 @@ class PhotoService {
         );
       } else if (photoUrl.startsWith('data:image/')) {
         try {
-          final base64Data = photoUrl.split(',').last;
           final bytes = UriData.parse(photoUrl).contentAsBytes();
           photoWidget = CircleAvatar(
             radius: radius,

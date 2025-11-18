@@ -167,23 +167,44 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   Future<void> _selectPhoto() async {
-    final photo = await _photoService.showImageSourceDialog(context);
-    if (photo != null) {
-      try {
+    try {
+      print('📸 Iniciando seleção de foto...');
+      final photo = await _photoService.showImageSourceDialog(context);
+      print('📸 Foto selecionada: ${photo != null ? "SIM" : "NÃO"}');
+      
+      if (photo != null) {
+        print('📸 Carregando bytes da foto...');
         final bytes = await photo.readAsBytes();
+        print('📸 Bytes carregados: ${bytes.length} bytes');
+        
         if (mounted) {
           setState(() {
             _selectedPhoto = photo;
             _photoBytes = bytes;
           });
-        }
-      } catch (e) {
-        print('Erro ao carregar foto: $e');
-        if (mounted) {
+          print('✅ Foto atualizada no estado! _photoBytes: ${_photoBytes != null ? "presente" : "ausente"}');
+          
+          // Mostrar feedback visual
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao carregar foto')),
+            const SnackBar(
+              content: Text('Foto selecionada!'),
+              duration: Duration(seconds: 1),
+              backgroundColor: Colors.green,
+            ),
           );
         }
+      } else {
+        print('⚠️ Nenhuma foto foi selecionada');
+      }
+    } catch (e) {
+      print('❌ Erro ao selecionar foto: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao carregar foto: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
