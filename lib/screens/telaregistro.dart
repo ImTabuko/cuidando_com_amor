@@ -38,7 +38,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   // Estados e cidades
   List<Map<String, String>> _states = [];
   List<String> _cities = [];
-  bool _isLoadingStates = false;
 
   // Controllers para campos específicos do idoso
   final _elderlyCpfController = TextEditingController();
@@ -68,14 +67,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   Future<void> _loadStates() async {
-    setState(() {
-      _isLoadingStates = true;
-    });
-    
     final states = await IBGEService.getStates();
     setState(() {
       _states = states;
-      _isLoadingStates = false;
     });
   }
 

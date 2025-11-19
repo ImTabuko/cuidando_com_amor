@@ -1,9 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/user.dart';
 import '../models/match.dart';
 
@@ -58,64 +56,71 @@ class DataService {
         print('⚠️ Servidor retornou status ${res.statusCode}');
         return; // Continua sem dados do servidor
       }
-    final body = json.decode(res.body);
-    final List data = body is Map && body['items'] is List ? body['items'] : (body as List);
       
-      // Não limpar completamente - apenas atualizar/adição
-      final existingIds = _users.map((u) => u.id).toSet();
+      final body = json.decode(res.body);
+      final List data = body is Map && body['items'] is List ? body['items'] : (body as List);
       
-    for (final item in data) {
-      final userId = (item['_id'] ?? item['id'] ?? '').toString();
-      final type = (item['userType'] ?? '').toString();
-      final photoUrl = item['photoUrl']?.toString();
+      // Criar mapa de usuários existentes por ID para evitar duplicação
+      final existingUsersMap = <String, User>{};
+      for (final user in _users) {
+        existingUsersMap[user.id] = user;
+      }
       
-      // Se o usuário já existe, atualizar (especialmente photoUrl)
-      if (existingIds.contains(userId)) {
-        try {
-          final existingUser = _users.firstWhere((u) => u.id == userId);
-          existingUser.photoUrl = photoUrl;
-          continue; // Pular criação, já atualizou
-        } catch (_) {
-          // Usuário não encontrado, continuar para criar
+      // Processar cada item da API
+      for (final item in data) {
+        final userId = (item['_id'] ?? item['id'] ?? '').toString();
+        if (userId.isEmpty) continue; // Pular se não tiver ID
+        
+        final type = (item['userType'] ?? '').toString();
+        final photoUrl = item['photoUrl']?.toString();
+        
+        // Se o usuário já existe, atualizar (especialmente photoUrl)
+        if (existingUsersMap.containsKey(userId)) {
+          final existingUser = existingUsersMap[userId]!;
+          // Atualizar photoUrl se fornecido
+          if (photoUrl != null && photoUrl.isNotEmpty) {
+            existingUser.photoUrl = photoUrl;
+          }
+          continue; // Pular criação, já existe
+        }
+        
+        // Criar novo usuário apenas se não existir
+        if (type == 'caregiver') {
+          _users.add(CaregiverUser(
+            id: userId,
+            fullName: (item['fullName'] ?? 'Sem nome').toString(),
+            street: (item['street'] ?? '').toString(),
+            neighborhood: (item['neighborhood'] ?? '').toString(),
+            city: (item['city'] ?? '').toString(),
+            state: (item['state'] ?? '').toString(),
+            email: (item['email'] ?? 'no@email.com').toString(),
+            cpf: (item['cpf'] ?? '00000000000').toString(),
+            password: (item['password'] ?? '123456').toString(),
+            phone: (item['phone'] ?? '').toString(),
+            description: (item['description'] ?? '').toString(),
+            birthDate: DateTime.tryParse(item['birthDate']?.toString() ?? '') ?? DateTime(1990,1,1),
+            photoUrl: photoUrl,
+          ));
+        } else if (type == 'elderly') {
+          _users.add(ElderlyUser(
+            id: userId,
+            fullName: (item['fullName'] ?? 'Sem nome').toString(),
+            street: (item['street'] ?? '').toString(),
+            neighborhood: (item['neighborhood'] ?? '').toString(),
+            city: (item['city'] ?? '').toString(),
+            state: (item['state'] ?? '').toString(),
+            cpf: (item['cpf'] ?? '00000000000').toString(),
+            email: item['email']?.toString(),
+            password: (item['password'] ?? '123456').toString(),
+            phone: (item['phone'] ?? '').toString(),
+            birthDate: DateTime.tryParse(item['birthDate']?.toString() ?? '') ?? DateTime(1950,1,1),
+            careNeeds: (item['careNeeds'] ?? '').toString(),
+            location: (item['location'] ?? '').toString(),
+            preferredTime: (item['preferredTime'] ?? '').toString(),
+            photoUrl: photoUrl,
+          ));
         }
       }
-      
-      if (type == 'caregiver') {
-        _users.add(CaregiverUser(
-          id: userId,
-          fullName: (item['fullName'] ?? 'Sem nome').toString(),
-          street: (item['street'] ?? '').toString(),
-          neighborhood: (item['neighborhood'] ?? '').toString(),
-          city: (item['city'] ?? '').toString(),
-          state: (item['state'] ?? '').toString(),
-          email: (item['email'] ?? 'no@email.com').toString(),
-          cpf: (item['cpf'] ?? '00000000000').toString(),
-          password: (item['password'] ?? '123456').toString(),
-          phone: (item['phone'] ?? '').toString(),
-          description: (item['description'] ?? '').toString(),
-          birthDate: DateTime.tryParse(item['birthDate']?.toString() ?? '') ?? DateTime(1990,1,1),
-          photoUrl: photoUrl,
-        ));
-      } else if (type == 'elderly') {
-        _users.add(ElderlyUser(
-          id: userId,
-          fullName: (item['fullName'] ?? 'Sem nome').toString(),
-          street: (item['street'] ?? '').toString(),
-          neighborhood: (item['neighborhood'] ?? '').toString(),
-          city: (item['city'] ?? '').toString(),
-          state: (item['state'] ?? '').toString(),
-          cpf: (item['cpf'] ?? '00000000000').toString(),
-          email: item['email']?.toString(),
-          password: (item['password'] ?? '123456').toString(),
-          phone: (item['phone'] ?? '').toString(),
-          birthDate: DateTime.tryParse(item['birthDate']?.toString() ?? '') ?? DateTime(1950,1,1),
-          careNeeds: (item['careNeeds'] ?? '').toString(),
-          location: (item['location'] ?? '').toString(),
-          preferredTime: (item['preferredTime'] ?? '').toString(),
-          photoUrl: photoUrl,
-        ));
-      }
-    }
     } catch (e) {
       // Se falhar, continua sem dados do servidor (modo offline)
       print('Erro ao carregar usuários: $e');
@@ -141,6 +146,14 @@ class DataService {
       if (res.statusCode == 200) {
         final List data = json.decode(res.body) as List;
         print('📊 Matches recebidos do backend: ${data.length}');
+        
+        // Criar mapa de matches existentes por ID
+        final existingMatchesMap = <String, Match>{};
+        for (final match in _matches) {
+          existingMatchesMap[match.matchId] = match;
+        }
+        
+        // Limpar lista e recriar com dados do servidor
         _matches.clear();
         
         for (final item in data) {
@@ -162,13 +175,21 @@ class DataService {
           
           print('  - Match: $matchId, Elderly: $elderlyId, Caregiver: $caregiverId, Status: $status');
           
-          _matches.add(Match(
-            matchId: matchId,
-            elderlyId: elderlyId,
-            caregiverId: caregiverId,
-            status: status,
-            dataMatch: DateTime.tryParse(item['createdAt']?.toString() ?? '') ?? DateTime.now(),
-          ));
+          // Usar match existente se disponível, senão criar novo
+          final existingMatch = existingMatchesMap[matchId];
+          if (existingMatch != null) {
+            // Atualizar status do match existente
+            existingMatch.status = status;
+            _matches.add(existingMatch);
+          } else {
+            _matches.add(Match(
+              matchId: matchId,
+              elderlyId: elderlyId,
+              caregiverId: caregiverId,
+              status: status,
+              dataMatch: DateTime.tryParse(item['createdAt']?.toString() ?? '') ?? DateTime.now(),
+            ));
+          }
         }
         print('✅ Total de matches carregados: ${_matches.length}');
       } else {
@@ -183,10 +204,13 @@ class DataService {
   // Autenticação
   Future<bool> login(String emailOrPhone, String password) async {
     try {
-      final user = _users.firstWhere(
+      final user = _users.where(
         (user) => (_getUserEmail(user) == emailOrPhone || _getUserPhone(user) == emailOrPhone) && 
                   _getUserPassword(user) == password,
-      );
+      ).firstOrNull;
+      
+      if (user == null) return false;
+      
       _currentUser = user;
       
       // Salvar ID do usuário para login automático
@@ -201,9 +225,12 @@ class DataService {
 
   Future<bool> loginByPhone(String phone, String password) async {
     try {
-      final user = _users.firstWhere(
+      final user = _users.where(
         (user) => _getUserPhone(user) == phone && _getUserPassword(user) == password,
-      );
+      ).firstOrNull;
+      
+      if (user == null) return false;
+      
       _currentUser = user;
       
       // Salvar ID do usuário para login automático
@@ -233,15 +260,28 @@ class DataService {
         return false;
       }
       
-      // Não chamar initialize() novamente - já foi chamado antes
-      // Apenas procurar o usuário na lista atual
-      try {
-        final user = _users.firstWhere((u) => u.id == userId);
+      // Tentar encontrar o usuário na lista atual
+      var user = _users.where((u) => u.id == userId).firstOrNull;
+      if (user != null) {
         _currentUser = user;
         return true;
-      } catch (e) {
-        // Usuário não encontrado na lista (pode não ter carregado do servidor)
-        print('⚠️ Usuário $userId não encontrado na lista');
+      }
+      
+      // Usuário não encontrado na lista, tentar recarregar do servidor
+      print('⚠️ Usuário $userId não encontrado na lista, recarregando do servidor...');
+      try {
+        await _loadUsersFromApi();
+        // Tentar novamente após recarregar
+        user = _users.where((u) => u.id == userId).firstOrNull;
+        if (user != null) {
+          _currentUser = user;
+          return true;
+        } else {
+          print('⚠️ Usuário $userId ainda não encontrado após recarregar');
+          return false;
+        }
+      } catch (e2) {
+        print('⚠️ Erro ao recarregar usuários: $e2');
         return false;
       }
     } catch (e) {
@@ -250,7 +290,7 @@ class DataService {
     }
   }
 
-  bool registerElderly({
+  Future<bool> registerElderly({
     required String fullName,
     required String street,
     required String neighborhood,
@@ -265,29 +305,33 @@ class DataService {
     required String location,
     required String preferredTime,
     String? photoUrl,
-  }) {
+  }) async {
     try {
-      // envia para API; se falhar, cai no modo local abaixo
-      _postUserToApi({
-        'fullName': fullName,
-        'street': street,
-        'neighborhood': neighborhood,
-        'city': city,
-        'state': state,
-        'email': email,
-        'cpf': cpf,
-        'password': password,
-        'phone': phone,
-        'birthDate': birthDate.toIso8601String(),
-        'careNeeds': careNeeds,
-        'location': location,
-        'preferredTime': preferredTime,
-        'userType': 'elderly',
-        'photoUrl': photoUrl, // Já vem em base64 do registro
-      });
-    } catch (_) {}
+      // Tentar enviar para API primeiro
+      try {
+        await _postUserToApi({
+          'fullName': fullName,
+          'street': street,
+          'neighborhood': neighborhood,
+          'city': city,
+          'state': state,
+          'email': email,
+          'cpf': cpf,
+          'password': password,
+          'phone': phone,
+          'birthDate': birthDate.toIso8601String(),
+          'careNeeds': careNeeds,
+          'location': location,
+          'preferredTime': preferredTime,
+          'userType': 'elderly',
+          'photoUrl': photoUrl, // Já vem em base64 do registro
+        });
+      } catch (e) {
+        print('⚠️ Erro ao enviar usuário para API: $e');
+        // Continua para criar localmente
+      }
 
-    try {
+      // Criar localmente (mesmo se API falhar)
       final elderly = ElderlyUser(
         id: _generateId(),
         fullName: fullName,
@@ -305,15 +349,20 @@ class DataService {
         preferredTime: preferredTime,
         photoUrl: photoUrl,
       );
-      _users.add(elderly);
+      
+      // Verificar se já existe antes de adicionar
+      if (!_users.any((u) => u.id == elderly.id)) {
+        _users.add(elderly);
+      }
       _currentUser = elderly;
       return true;
     } catch (e) {
+      print('❌ Erro ao registrar idoso: $e');
       return false;
     }
   }
 
-  bool registerCaregiver({
+  Future<bool> registerCaregiver({
     required String fullName,
     required String street,
     required String neighborhood,
@@ -326,26 +375,31 @@ class DataService {
     required DateTime birthDate,
     required String description,
     String? photoUrl,
-  }) {
+  }) async {
     try {
-      _postUserToApi({
-        'fullName': fullName,
-        'street': street,
-        'neighborhood': neighborhood,
-        'city': city,
-        'state': state,
-        'email': email,
-        'cpf': cpf,
-        'password': password,
-        'phone': phone,
-        'birthDate': birthDate.toIso8601String(),
-        'description': description,
-        'userType': 'caregiver',
-        'photoUrl': photoUrl, // Já vem em base64 do registro
-      });
-    } catch (_) {}
+      // Tentar enviar para API primeiro
+      try {
+        await _postUserToApi({
+          'fullName': fullName,
+          'street': street,
+          'neighborhood': neighborhood,
+          'city': city,
+          'state': state,
+          'email': email,
+          'cpf': cpf,
+          'password': password,
+          'phone': phone,
+          'birthDate': birthDate.toIso8601String(),
+          'description': description,
+          'userType': 'caregiver',
+          'photoUrl': photoUrl, // Já vem em base64 do registro
+        });
+      } catch (e) {
+        print('⚠️ Erro ao enviar usuário para API: $e');
+        // Continua para criar localmente
+      }
 
-    try {
+      // Criar localmente (mesmo se API falhar)
       final caregiver = CaregiverUser(
         id: _generateId(),
         fullName: fullName,
@@ -361,10 +415,15 @@ class DataService {
         description: description,
         photoUrl: photoUrl,
       );
-      _users.add(caregiver);
+      
+      // Verificar se já existe antes de adicionar
+      if (!_users.any((u) => u.id == caregiver.id)) {
+        _users.add(caregiver);
+      }
       _currentUser = caregiver;
       return true;
     } catch (e) {
+      print('❌ Erro ao registrar cuidador: $e');
       return false;
     }
   }
@@ -416,26 +475,31 @@ class DataService {
     // Se não há usuário logado, retornar lista vazia
     if (_currentUser == null) return [];
     
+    // Filtrar para não mostrar o próprio usuário
+    final filteredCaregivers = allCaregivers.where((caregiver) => 
+      caregiver.id != _currentUser!.id
+    ).toList();
+    
     // Pegar endereço do usuário atual
     final currentUserCity = _currentUser!.city;
     final currentUserNeighborhood = _currentUser!.neighborhood;
     final currentUserState = _currentUser!.state;
     
     // Priorizar: mesmo bairro > mesma cidade > mesmo estado
-    final sameNeighborhood = allCaregivers.where((caregiver) => 
+    final sameNeighborhood = filteredCaregivers.where((caregiver) => 
       caregiver.neighborhood == currentUserNeighborhood && 
       caregiver.city == currentUserCity
     ).toList();
     
     if (sameNeighborhood.isNotEmpty) return sameNeighborhood;
     
-    final sameCity = allCaregivers.where((caregiver) => 
+    final sameCity = filteredCaregivers.where((caregiver) => 
       caregiver.city == currentUserCity
     ).toList();
     
     if (sameCity.isNotEmpty) return sameCity;
     
-    final sameState = allCaregivers.where((caregiver) => 
+    final sameState = filteredCaregivers.where((caregiver) => 
       caregiver.state == currentUserState
     ).toList();
     
@@ -449,26 +513,31 @@ class DataService {
     // Se não há usuário logado, retornar lista vazia
     if (_currentUser == null) return [];
     
+    // Filtrar para não mostrar o próprio usuário
+    final filteredElderlies = allElderlies.where((elderly) => 
+      elderly.id != _currentUser!.id
+    ).toList();
+    
     // Pegar endereço do usuário atual
     final currentUserCity = _currentUser!.city;
     final currentUserNeighborhood = _currentUser!.neighborhood;
     final currentUserState = _currentUser!.state;
     
     // Priorizar: mesmo bairro > mesma cidade > mesmo estado
-    final sameNeighborhood = allElderlies.where((elderly) => 
+    final sameNeighborhood = filteredElderlies.where((elderly) => 
       elderly.neighborhood == currentUserNeighborhood && 
       elderly.city == currentUserCity
     ).toList();
     
     if (sameNeighborhood.isNotEmpty) return sameNeighborhood;
     
-    final sameCity = allElderlies.where((elderly) => 
+    final sameCity = filteredElderlies.where((elderly) => 
       elderly.city == currentUserCity
     ).toList();
     
     if (sameCity.isNotEmpty) return sameCity;
     
-    final sameState = allElderlies.where((elderly) => 
+    final sameState = filteredElderlies.where((elderly) => 
       elderly.state == currentUserState
     ).toList();
     
@@ -487,33 +556,7 @@ class DataService {
   }
 
   Future<Match> createMatch(String elderlyId, String caregiverId) async {
-    // Verificar se já existe um match entre esses dois usuários
-    final existingMatch = _matches.firstWhere(
-      (m) => (m.elderlyId == elderlyId && m.caregiverId == caregiverId) ||
-             (m.elderlyId == caregiverId && m.caregiverId == elderlyId),
-      orElse: () => Match(
-        matchId: '',
-        elderlyId: '',
-        caregiverId: '',
-        status: MatchStatus.rejected,
-        dataMatch: DateTime.now(),
-      ),
-    );
-    
-    if (existingMatch.matchId.isNotEmpty) {
-      print('⚠️ Match já existe: ${existingMatch.matchId}');
-      return existingMatch;
-    }
-
-    final match = Match(
-      matchId: _generateId(),
-      elderlyId: elderlyId,
-      caregiverId: caregiverId,
-      status: MatchStatus.pending,
-      dataMatch: DateTime.now(),
-    );
-
-    // Tentar criar no backend PRIMEIRO
+    // Tentar criar no backend PRIMEIRO (backend verifica duplicatas)
     try {
       print('📤 Criando match no backend: Elderly=$elderlyId, Caregiver=$caregiverId');
       final response = await http.post(
@@ -526,67 +569,141 @@ class DataService {
         }),
       ).timeout(const Duration(seconds: 10));
       
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
-        print('✅ Match criado no backend: ${data['_id']}');
-        // Usar ID do backend se disponível
-        final backendMatch = Match(
-          matchId: (data['_id'] ?? data['id'] ?? match.matchId).toString(),
-          elderlyId: elderlyId,
-          caregiverId: caregiverId,
-          status: MatchStatus.pending,
-          dataMatch: DateTime.tryParse(data['createdAt']?.toString() ?? '') ?? DateTime.now(),
-        );
-        _matches.add(backendMatch);
-        // Recarregar matches do servidor para garantir sincronização
-        await reloadMatchesFromApi();
-        return backendMatch;
+        print('✅ Match criado/retornado do backend: ${data['_id']}');
+        
+        // Converter status do backend
+        MatchStatus status;
+        switch (data['status']) {
+          case 'accepted':
+            status = MatchStatus.accepted;
+            break;
+          case 'rejected':
+            status = MatchStatus.rejected;
+            break;
+          default:
+            status = MatchStatus.pending;
+        }
+        
+        final matchId = (data['_id'] ?? data['id'] ?? '').toString();
+        
+        // Verificar se já existe localmente
+        final existingMatchIndex = _matches.indexWhere((m) => m.matchId == matchId);
+        if (existingMatchIndex != -1) {
+          // Atualizar status do match existente
+          _matches[existingMatchIndex].status = status;
+          return _matches[existingMatchIndex];
+        } else {
+          // Match não existe localmente, criar novo
+          final backendMatch = Match(
+            matchId: matchId,
+            elderlyId: elderlyId,
+            caregiverId: caregiverId,
+            status: status,
+            dataMatch: DateTime.tryParse(data['createdAt']?.toString() ?? '') ?? DateTime.now(),
+          );
+          _matches.add(backendMatch);
+          return backendMatch;
+        }
       } else {
         print('⚠️ Backend retornou status ${response.statusCode}');
+        throw Exception('Backend retornou status ${response.statusCode}');
       }
     } catch (e) {
       print('❌ Erro ao criar match no backend: $e');
-      // Se falhar, adiciona localmente
+      
+      // Verificar se já existe localmente antes de criar novo
+      final existingMatchIndex = _matches.indexWhere(
+        (m) => (m.elderlyId == elderlyId && m.caregiverId == caregiverId) ||
+               (m.elderlyId == caregiverId && m.caregiverId == elderlyId),
+      );
+      if (existingMatchIndex != -1) {
+        print('⚠️ Match já existe localmente: ${_matches[existingMatchIndex].matchId}');
+        return _matches[existingMatchIndex];
+      } else {
+        // Não existe, criar localmente
+        final match = Match(
+          matchId: _generateId(),
+          elderlyId: elderlyId,
+          caregiverId: caregiverId,
+          status: MatchStatus.pending,
+          dataMatch: DateTime.now(),
+        );
+        print('💾 Adicionando match localmente: ${match.matchId}');
+        _matches.add(match);
+        return match;
+      }
     }
-
-    // Adicionar localmente se não conseguiu salvar no backend
-    print('💾 Adicionando match localmente: ${match.matchId}');
-    _matches.add(match);
-    return match;
   }
 
   // Método unificado para atualizar status do match
   Future<Match?> updateMatchStatus(String matchId, MatchStatus newStatus) async {
     try {
-      final match = _matches.firstWhere((m) => m.matchId == matchId);
+      // Verificar se match existe localmente
+      var matchIndex = _matches.indexWhere((m) => m.matchId == matchId);
+      if (matchIndex == -1) {
+        // Match não encontrado localmente, recarregar do servidor
+        print('⚠️ Match não encontrado localmente, recarregando do servidor...');
+        await reloadMatchesFromApi();
+        matchIndex = _matches.indexWhere((m) => m.matchId == matchId);
+        if (matchIndex == -1) {
+          throw Exception('Match não encontrado: $matchId');
+        }
+      }
+      
+      final match = _matches[matchIndex];
       
       // Atualizar no backend PRIMEIRO
       try {
-        await _updateMatchOnServer(matchId, newStatus);
+        final response = await _updateMatchOnServer(matchId, newStatus);
         print('✅ Match atualizado no backend: $matchId -> $newStatus');
+        
+        // Atualizar com dados do servidor se disponível
+        if (response != null) {
+          MatchStatus serverStatus;
+          switch (response['status']) {
+            case 'accepted':
+              serverStatus = MatchStatus.accepted;
+              break;
+            case 'rejected':
+              serverStatus = MatchStatus.rejected;
+              break;
+            default:
+              serverStatus = MatchStatus.pending;
+          }
+          match.status = serverStatus;
+        } else {
+          // Se não recebeu resposta, atualizar localmente
+          if (newStatus == MatchStatus.accepted) {
+            match.accept();
+          } else if (newStatus == MatchStatus.rejected) {
+            match.reject();
+          }
+        }
       } catch (e) {
         print('❌ Erro ao atualizar match no backend: $e');
-        // Continua mesmo se falhar
-      }
-      
-      // Atualizar status localmente
-      if (newStatus == MatchStatus.accepted) {
-        match.accept();
-      } else if (newStatus == MatchStatus.rejected) {
-        match.reject();
+        // Atualizar localmente mesmo se falhar no backend
+        if (newStatus == MatchStatus.accepted) {
+          match.accept();
+        } else if (newStatus == MatchStatus.rejected) {
+          match.reject();
+        }
       }
       
       // Recarregar matches do servidor para garantir sincronização
       await reloadMatchesFromApi();
-
-      return match;
+      
+      // Retornar match atualizado
+      final finalMatchIndex = _matches.indexWhere((m) => m.matchId == matchId);
+      return finalMatchIndex != -1 ? _matches[finalMatchIndex] : match;
     } catch (e) {
       throw Exception('Erro ao atualizar match: $e');
     }
   }
 
   // Método auxiliar para atualizar no servidor
-  Future<void> _updateMatchOnServer(String matchId, MatchStatus status) async {
+  Future<Map<String, dynamic>?> _updateMatchOnServer(String matchId, MatchStatus status) async {
     final statusString = status == MatchStatus.accepted ? 'accepted' : 
                         status == MatchStatus.rejected ? 'rejected' : 'pending';
     
@@ -596,7 +713,9 @@ class DataService {
       body: json.encode({'status': statusString}),
     ).timeout(const Duration(seconds: 10));
     
-    if (response.statusCode != 200) {
+    if (response.statusCode == 200) {
+      return json.decode(response.body) as Map<String, dynamic>;
+    } else {
       throw Exception('Servidor retornou status ${response.statusCode}');
     }
   }
@@ -611,11 +730,7 @@ class DataService {
   }
 
   User? getUserById(String userId) {
-    try {
-      return _users.firstWhere((user) => user.id == userId);
-    } catch (e) {
-      return null;
-    }
+    return _users.where((user) => user.id == userId).firstOrNull;
   }
 
   // Métodos auxiliares

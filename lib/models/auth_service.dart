@@ -36,7 +36,7 @@ class AuthService {
     required String preferredTime,
     String? photoUrl,
   }) async {
-    return _dataService.registerElderly(
+    return await _dataService.registerElderly(
       fullName: fullName,
       street: street,
       neighborhood: neighborhood,
@@ -68,7 +68,7 @@ class AuthService {
     required String description,
     String? photoUrl,
   }) async {
-    return _dataService.registerCaregiver(
+    return await _dataService.registerCaregiver(
       fullName: fullName,
       street: street,
       neighborhood: neighborhood,

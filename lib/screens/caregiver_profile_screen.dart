@@ -3,6 +3,7 @@ import '../models/user.dart';
 import '../models/match_service.dart';
 import '../models/auth_service.dart';
 import '../services/accessibility_service.dart';
+import '../services/photo_service.dart';
 import '../widgets/accessible_text.dart';
 
 class CaregiverProfileScreen extends StatefulWidget {
@@ -18,13 +19,12 @@ class _CaregiverProfileScreenState extends State<CaregiverProfileScreen> {
   final MatchService _matchService = MatchService();
   final AuthService _authService = AuthService();
   final AccessibilityService _accessibilityService = AccessibilityService();
+  final PhotoService _photoService = PhotoService();
   bool _isLoading = false;
-  bool _isLargeTextEnabled = false;
 
   @override
   void initState() {
     super.initState();
-    _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
     _accessibilityService.addListener(_updateState);
   }
 
@@ -35,9 +35,7 @@ class _CaregiverProfileScreenState extends State<CaregiverProfileScreen> {
   }
 
   void _updateState() {
-    setState(() {
-      _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
-    });
+    setState(() {});
   }
 
   @override
@@ -83,14 +81,10 @@ class _CaregiverProfileScreenState extends State<CaregiverProfileScreen> {
     return Center(
       child: Column(
         children: [
-          CircleAvatar(
+          _photoService.buildProfilePhoto(
+            photoUrl: widget.caregiver.photoUrl,
             radius: _accessibilityService.isLargeTextEnabled ? 80 : 60,
-            backgroundColor: Colors.blue[100],
-            child: Icon(
-              Icons.person,
-              size: _accessibilityService.isLargeTextEnabled ? 80 : 60,
-              color: Colors.blue[800],
-            ),
+            showEditIcon: false,
           ),
           SizedBox(height: _accessibilityService.defaultSpacing),
           TitleText(

@@ -21,12 +21,10 @@ class _ChatsScreenState extends State<ChatsScreen> {
   final PhotoService _photoService = PhotoService();
   List<ChatWithUsers> _chats = [];
   bool _isLoading = true;
-  bool _isLargeTextEnabled = false;
 
   @override
   void initState() {
     super.initState();
-    _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
     _accessibilityService.addListener(_updateState);
     _loadChats();
   }
@@ -38,9 +36,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
   }
 
   void _updateState() {
-    setState(() {
-      _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
-    });
+    setState(() {});
   }
 
   Future<void> _loadChats({bool reload = false}) async {

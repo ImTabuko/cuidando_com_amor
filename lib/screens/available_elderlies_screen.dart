@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
-import '../models/match_service.dart';
 import '../models/auth_service.dart';
+import '../services/photo_service.dart';
 import 'elderly_profile_screen.dart';
-import '../utils/app_colors.dart';
 
 class AvailableElderliesScreen extends StatefulWidget {
   const AvailableElderliesScreen({super.key});
@@ -13,8 +12,8 @@ class AvailableElderliesScreen extends StatefulWidget {
 }
 
 class _AvailableElderliesScreenState extends State<AvailableElderliesScreen> {
-  final MatchService _matchService = MatchService();
   final AuthService _authService = AuthService();
+  final PhotoService _photoService = PhotoService();
   List<ElderlyUser> _availableElderlies = [];
   bool _isLoading = true;
 
@@ -111,19 +110,10 @@ class _AvailableElderliesScreenState extends State<AvailableElderliesScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
+              _photoService.buildProfilePhoto(
+                photoUrl: elderly.photoUrl,
                 radius: 30,
-                backgroundColor: AppColors.primaryShade50,
-                backgroundImage: elderly.photoUrl != null
-                    ? NetworkImage(elderly.photoUrl!)
-                    : null,
-                child: elderly.photoUrl == null
-                    ? Icon(
-                        Icons.person,
-                        size: 30,
-                        color: AppColors.primary,
-                      )
-                    : null,
+                showEditIcon: false,
               ),
               const SizedBox(width: 16),
               Expanded(

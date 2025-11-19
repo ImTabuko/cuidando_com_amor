@@ -27,9 +27,6 @@ class AccessibleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accessibilityService = AccessibilityService();
-    final mediaQuery = MediaQuery.of(context);
-    // Não atualizar a cada build - pode travar no web
-    // accessibilityService.updateFromMediaQuery(mediaQuery);
 
     final effectiveColor = accessibilityService.getHighContrastColor(
       color ?? Theme.of(context).cardColor,

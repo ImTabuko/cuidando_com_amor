@@ -400,14 +400,17 @@ class _HomeScreenState extends State<HomeScreen> {
         
         // Atualizar localmente
         user.photoUrl = base64;
-        if (user is ElderlyUser) {
-          user.photoUrl = base64;
-        } else if (user is CaregiverUser) {
-          user.photoUrl = base64;
-        }
         
         // Recarregar usuários do backend para garantir sincronização
         await _dataService.reloadUsersFromApi();
+        
+        // Atualizar o usuário atual com a foto atualizada do backend
+        final updatedUser = _dataService.getUserById(user.id);
+        if (updatedUser != null) {
+          updatedUser.photoUrl = base64;
+          // Atualizar referência do usuário atual
+          user.photoUrl = base64;
+        }
         
         setState(() {
           _tempPhotoBytes = null;

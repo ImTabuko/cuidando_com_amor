@@ -31,12 +31,10 @@ class _ChatScreenState extends State<ChatScreen> {
   
   List<Message> _messages = [];
   bool _isLoading = true;
-  bool _isLargeTextEnabled = false;
 
   @override
   void initState() {
     super.initState();
-    _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
     _accessibilityService.addListener(_updateState);
     _loadMessages();
   }
@@ -50,9 +48,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _updateState() {
-    setState(() {
-      _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
-    });
+    setState(() {});
   }
 
   Future<void> _loadMessages({bool reload = false}) async {

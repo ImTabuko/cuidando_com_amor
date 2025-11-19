@@ -1,15 +1,47 @@
+# Configuração do Netlify para Cuidando com Amor
+# 
 # IMPORTANTE: O Netlify não tem Flutter instalado por padrão
-# Use Netlify Drop após fazer build local:
+# 
+# OPÇÃO 1: Build Local + Netlify Drop (Recomendado)
 # 1. Execute: flutter build web --release
 # 2. Acesse: https://app.netlify.com/drop
 # 3. Arraste a pasta build/web
+#
+# OPÇÃO 2: Build Automático (requer Flutter no Netlify via build image)
+# Configure no painel do Netlify:
+# - Base directory: cuidando_com_amor
+# - Build command: flutter pub get && flutter build web --release
+# - Publish directory: build/web (relativo ao base directory)
+# - Environment variables: Nenhuma necessária
 
 [build]
-  # Deixe vazio - não use build command aqui
+  # Para build automático, descomente a linha abaixo e configure no painel do Netlify
+  # command = "cd cuidando_com_amor && flutter pub get && flutter build web --release"
+  # Se o base directory for cuidando_com_amor, use apenas build/web
+  # Se o base directory for a raiz, use cuidando_com_amor/build/web
   publish = "build/web"
+  
+  # Configurações de ambiente (se necessário)
+  # [build.environment]
+  #   FLUTTER_VERSION = "3.x.x"
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Headers de segurança
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Cache para assets estáticos
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 

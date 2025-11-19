@@ -45,10 +45,13 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
     try {
       // Garantir que os dados estão carregados
       if (reload) {
+        // Recarregar usuários primeiro para garantir que temos os dados atualizados
         await _matchService.dataService.reloadUsersFromApi();
+        // Recarregar matches do servidor
         await _matchService.dataService.reloadMatchesFromApi();
       }
       
+      // Obter matches do usuário atual (não recarregar novamente se já recarregamos acima)
       _matches = await _matchService.getMatchesForCurrentUser(reload: false);
       
       // Debug: verificar matches encontrados
@@ -75,7 +78,11 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
       canPop: false, // Desabilita botão de voltar do Android
       child: Scaffold(
         appBar: AppBar(
-          automaticallyImplyLeading: false,
+          automaticallyImplyLeading: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
+          ),
         title: TitleText('Meus Matches', color: Colors.white),
         backgroundColor: AppColors.primary,
         bottom: TabBar(
@@ -432,25 +439,36 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
 
   Future<void> _updateMatchStatus(Match match, MatchStatus status, String successMessage) async {
     try {
+      // Atualizar status do match
       if (status == MatchStatus.accepted) {
         await _matchService.acceptMatch(match.matchId);
       } else {
         await _matchService.rejectMatch(match.matchId);
       }
       
-      await _loadMatches();
+      // Recarregar matches com reload=true para garantir sincronização
+      await _loadMatches(reload: true);
       
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(successMessage)),
+          SnackBar(
+            content: Text(successMessage),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
         );
       }
     } catch (e) {
+      print('❌ Erro ao atualizar status do match: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: ${e.toString()}')),
+          SnackBar(
+            content: Text('Erro: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
         );
       }
     }

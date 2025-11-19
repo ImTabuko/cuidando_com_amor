@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
-import '../models/match_service.dart';
 import '../models/auth_service.dart';
 import '../services/accessibility_service.dart';
+import '../services/photo_service.dart';
 import '../widgets/accessible_text.dart';
 import 'caregiver_profile_screen.dart';
-import '../utils/app_colors.dart';
 
 class AvailableCaregiversScreen extends StatefulWidget {
   const AvailableCaregiversScreen({super.key});
@@ -15,17 +14,15 @@ class AvailableCaregiversScreen extends StatefulWidget {
 }
 
 class _AvailableCaregiversScreenState extends State<AvailableCaregiversScreen> {
-  final MatchService _matchService = MatchService();
   final AuthService _authService = AuthService();
   final AccessibilityService _accessibilityService = AccessibilityService();
+  final PhotoService _photoService = PhotoService();
   List<CaregiverUser> _availableCaregivers = [];
   bool _isLoading = true;
-  bool _isLargeTextEnabled = false;
 
   @override
   void initState() {
     super.initState();
-    _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
     _accessibilityService.addListener(_updateState);
     _loadAvailableCaregivers();
   }
@@ -37,9 +34,7 @@ class _AvailableCaregiversScreenState extends State<AvailableCaregiversScreen> {
   }
 
   void _updateState() {
-    setState(() {
-      _isLargeTextEnabled = _accessibilityService.isLargeTextEnabled;
-    });
+    setState(() {});
   }
 
   Future<void> _loadAvailableCaregivers() async {
@@ -129,14 +124,10 @@ class _AvailableCaregiversScreenState extends State<AvailableCaregiversScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
+              _photoService.buildProfilePhoto(
+                photoUrl: caregiver.photoUrl,
                 radius: _accessibilityService.isLargeTextEnabled ? 40 : 30,
-                backgroundColor: AppColors.primaryShade50,
-                child: Icon(
-                  Icons.person,
-                  size: _accessibilityService.isLargeTextEnabled ? 40 : 30,
-                  color: AppColors.primary,
-                ),
+                showEditIcon: false,
               ),
               SizedBox(width: _accessibilityService.defaultSpacing),
               Expanded(

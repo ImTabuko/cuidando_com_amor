@@ -87,14 +87,9 @@ class ChatService {
   // Criar chat quando match é aceito
   Future<Chat> createChatFromMatch(Match match) async {
     // Verificar se já existe chat para este match
-    Chat? existingChat;
-    try {
-      existingChat = _chats.firstWhere(
-        (chat) => chat.elderlyId == match.elderlyId && chat.caregiverId == match.caregiverId,
-      );
-    } catch (e) {
-      // Chat não existe, continuar
-    }
+    final existingChat = _chats.where(
+      (chat) => chat.elderlyId == match.elderlyId && chat.caregiverId == match.caregiverId,
+    ).firstOrNull;
 
     if (existingChat != null) {
       return existingChat;
@@ -311,23 +306,15 @@ class ChatService {
 
   // Obter chat por ID
   Future<Chat?> getChatById(String chatId) async {
-    try {
-      return _chats.firstWhere((chat) => chat.id == chatId);
-    } catch (e) {
-      return null;
-    }
+    return _chats.where((chat) => chat.id == chatId).firstOrNull;
   }
 
   // Verificar se existe chat entre dois usuários
   Future<Chat?> getChatBetweenUsers(String userId1, String userId2) async {
-    try {
-      return _chats.firstWhere((chat) => 
-        (chat.elderlyId == userId1 && chat.caregiverId == userId2) ||
-        (chat.elderlyId == userId2 && chat.caregiverId == userId1)
-      );
-    } catch (e) {
-      return null;
-    }
+    return _chats.where((chat) => 
+      (chat.elderlyId == userId1 && chat.caregiverId == userId2) ||
+      (chat.elderlyId == userId2 && chat.caregiverId == userId1)
+    ).firstOrNull;
   }
 
   // Obter usuário do chat (o outro participante)

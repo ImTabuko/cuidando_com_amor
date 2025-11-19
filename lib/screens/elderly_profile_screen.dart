@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../models/match_service.dart';
 import '../models/auth_service.dart';
+import '../services/photo_service.dart';
 
 class ElderlyProfileScreen extends StatefulWidget {
   final ElderlyUser elderly;
@@ -15,6 +16,7 @@ class ElderlyProfileScreen extends StatefulWidget {
 class _ElderlyProfileScreenState extends State<ElderlyProfileScreen> {
   final MatchService _matchService = MatchService();
   final AuthService _authService = AuthService();
+  final PhotoService _photoService = PhotoService();
   bool _isLoading = false;
 
   @override
@@ -62,19 +64,10 @@ class _ElderlyProfileScreenState extends State<ElderlyProfileScreen> {
     return Center(
       child: Column(
         children: [
-          CircleAvatar(
+          _photoService.buildProfilePhoto(
+            photoUrl: widget.elderly.photoUrl,
             radius: 60,
-            backgroundColor: Colors.blue[100],
-            backgroundImage: widget.elderly.photoUrl != null
-                ? NetworkImage(widget.elderly.photoUrl!)
-                : null,
-            child: widget.elderly.photoUrl == null
-                ? Icon(
-                    Icons.person,
-                    size: 60,
-                    color: Colors.blue[800],
-                  )
-                : null,
+            showEditIcon: false,
           ),
           const SizedBox(height: 16),
           Text(

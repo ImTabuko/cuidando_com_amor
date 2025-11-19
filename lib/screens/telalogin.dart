@@ -6,7 +6,6 @@ import '../services/data_service.dart';
 import '../widgets/accessible_text.dart';
 import '../utils/app_colors.dart';
 import '../widgets/app_logo.dart';
-import '../widgets/sign_language_interpreter.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -164,15 +163,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 SizedBox(height: _accessibilityService.smallSpacing),
-                
-                // Intérprete de Libras (se ativado)
-                Center(
-                  child: SignLanguageInterpreter(
-                    text: 'Bem-vindo! Faça login para continuar',
-                    width: 180,
-                    height: 120,
-                  ),
-                ),
                 SizedBox(height: _accessibilityService.smallSpacing),
                 
                 FittedBox(

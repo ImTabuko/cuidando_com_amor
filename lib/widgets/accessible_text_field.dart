@@ -70,7 +70,8 @@ class _AccessibleTextFieldState extends State<AccessibleTextField> {
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
-    _accessibilityService.updateFromMediaQuery(mediaQuery);
+    // Não atualizar automaticamente - pode causar problemas de performance
+    // _accessibilityService.updateFromMediaQuery(mediaQuery);
 
     final effectiveLabel = widget.semanticLabel ?? widget.label;
     final effectiveHint = widget.semanticHint ?? widget.hint;

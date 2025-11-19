@@ -29,8 +29,6 @@ class AccessibleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accessibilityService = AccessibilityService();
-    final mediaQuery = MediaQuery.of(context);
-    // Removido para evitar travamentos no web
 
     final effectiveBackgroundColor = accessibilityService.getHighContrastColor(
       backgroundColor ?? Theme.of(context).primaryColor,
