@@ -9,17 +9,16 @@
 #
 # OPÇÃO 2: Build Automático (requer Flutter no Netlify via build image)
 # Configure no painel do Netlify:
-# - Base directory: cuidando_com_amor
-# - Build command: flutter pub get && flutter build web --release
-# - Publish directory: build/web (relativo ao base directory)
+# - Base directory: (raiz do repositório)
+# - Build command: cd cuidando_com_amor && flutter pub get && flutter build web --release
+# - Publish directory: cuidando_com_amor/build/web
 # - Environment variables: Nenhuma necessária
 
 [build]
   # Para build automático, descomente a linha abaixo e configure no painel do Netlify
   # command = "cd cuidando_com_amor && flutter pub get && flutter build web --release"
-  # Se o base directory for cuidando_com_amor, use apenas build/web
-  # Se o base directory for a raiz, use cuidando_com_amor/build/web
-  publish = "build/web"
+  # Publish directory relativo à raiz do repositório
+  publish = "cuidando_com_amor/build/web"
   
   # Configurações de ambiente (se necessário)
   # [build.environment]
