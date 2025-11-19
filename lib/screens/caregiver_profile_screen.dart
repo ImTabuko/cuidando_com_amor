@@ -22,6 +22,7 @@ class _CaregiverProfileScreenState extends State<CaregiverProfileScreen> {
   final AccessibilityService _accessibilityService = AccessibilityService();
   final PhotoService _photoService = PhotoService();
   bool _isLoading = false;
+  Match? _existingMatch;
 
   @override
   void initState() {
@@ -34,6 +35,17 @@ class _CaregiverProfileScreenState extends State<CaregiverProfileScreen> {
     // Recarregar dados do usuário para garantir que temos as informações mais atualizadas
     try {
       await _matchService.dataService.reloadUsersFromApi();
+      await _matchService.dataService.reloadMatchesFromApi();
+      
+      // Verificar se existe match entre o usuário atual e este cuidador
+      final currentUser = _authService.currentUser;
+      if (currentUser is ElderlyUser) {
+        _existingMatch = _matchService.dataService.getExistingMatch(
+          currentUser.id,
+          widget.caregiver.id,
+        );
+      }
+      
       // Atualizar o widget com os dados mais recentes
       if (mounted) {
         setState(() {});
@@ -156,11 +168,42 @@ class _CaregiverProfileScreenState extends State<CaregiverProfileScreen> {
       return const SizedBox.shrink();
     }
 
+    final currentUser = _authService.currentUser as ElderlyUser;
+    
+    // Verificar se já existe match aceito
+    final hasAccepted = _matchService.dataService.hasAcceptedMatch(
+      currentUser.id,
+      widget.caregiver.id,
+    );
+    
+    if (hasAccepted) {
+      // Match já aceito, não mostrar botão
+      return Center(
+        child: Container(
+          padding: EdgeInsets.all(_accessibilityService.defaultSpacing),
+          decoration: BoxDecoration(
+            color: Colors.green[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.green[300]!),
+          ),
+          child: BodyText(
+            'Match aceito! Vocês já estão conectados.',
+            color: Colors.green[800],
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    
+    // Verificar se existe match rejeitado
+    final isRejected = _existingMatch?.status == MatchStatus.rejected;
+    final buttonText = isRejected ? 'Reenviar Solicitação' : 'Solicitar Cuidados';
+
     return Center(
       child: ElevatedButton(
         onPressed: _isLoading ? null : _createMatch,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.green,
+          backgroundColor: isRejected ? Colors.orange : Colors.green,
           padding: EdgeInsets.symmetric(
             horizontal: _accessibilityService.largeSpacing * 2,
             vertical: _accessibilityService.defaultSpacing,
@@ -168,7 +211,7 @@ class _CaregiverProfileScreenState extends State<CaregiverProfileScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: ButtonText(
-          'Solicitar Cuidados',
+          buttonText,
           color: Colors.white,
         ),
       ),

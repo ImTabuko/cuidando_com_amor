@@ -260,7 +260,24 @@ app.get('/api/matches', async (req, res) => {
 // POST - Criar match
 app.post('/api/matches', async (req, res) => {
   try {
-    // Verificar se já existe match entre esses dois usuários
+    // Verificar se já existe match ACEITO entre esses dois usuários
+    // Se já foi aceito, não pode criar novo match
+    const acceptedMatch = await Match.findOne({
+      $or: [
+        { elderlyId: req.body.elderlyId, caregiverId: req.body.caregiverId, status: 'accepted' },
+        { elderlyId: req.body.caregiverId, caregiverId: req.body.elderlyId, status: 'accepted' }
+      ]
+    });
+    
+    if (acceptedMatch) {
+      return res.status(400).json({ 
+        error: 'Já existe um match aceito entre esses usuários. Não é possível criar um novo match.' 
+      });
+    }
+    
+    // Verificar se existe match rejeitado ou pendente
+    // Se existe match rejeitado, podemos criar um novo (permitir reenvio)
+    // Se existe match pendente, retornar o existente
     const existingMatch = await Match.findOne({
       $or: [
         { elderlyId: req.body.elderlyId, caregiverId: req.body.caregiverId },
@@ -269,7 +286,12 @@ app.post('/api/matches', async (req, res) => {
     });
     
     if (existingMatch) {
-      return res.json(existingMatch);
+      // Se o match existente está pendente, retornar ele
+      if (existingMatch.status === 'pending') {
+        return res.json(existingMatch);
+      }
+      // Se o match existente foi rejeitado, criar um novo match
+      // (não retornar o rejeitado, permitir criar novo)
     }
     
     // Criar match com informação de quem criou

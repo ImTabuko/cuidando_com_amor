@@ -568,6 +568,27 @@ class DataService {
     ).toList();
   }
 
+  // Verificar se existe match aceito entre dois usuários
+  bool hasAcceptedMatch(String elderlyId, String caregiverId) {
+    return _matches.any((match) =>
+      ((match.elderlyId == elderlyId && match.caregiverId == caregiverId) ||
+       (match.elderlyId == caregiverId && match.caregiverId == elderlyId)) &&
+      match.status == MatchStatus.accepted
+    );
+  }
+
+  // Obter match existente entre dois usuários (qualquer status)
+  Match? getExistingMatch(String elderlyId, String caregiverId) {
+    try {
+      return _matches.where((match) =>
+        (match.elderlyId == elderlyId && match.caregiverId == caregiverId) ||
+        (match.elderlyId == caregiverId && match.caregiverId == elderlyId)
+      ).firstOrNull;
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<Match> createMatch(String elderlyId, String caregiverId, {MatchCreatedBy? createdBy}) async {
     // Tentar criar no backend PRIMEIRO (backend verifica duplicatas)
     try {
@@ -633,6 +654,10 @@ class DataService {
           _matches.add(backendMatch);
           return backendMatch;
         }
+      } else if (response.statusCode == 400) {
+        // Backend retornou erro (ex: match aceito já existe)
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['error'] ?? 'Não é possível criar o match');
       } else {
         print('⚠️ Backend retornou status ${response.statusCode}');
         throw Exception('Backend retornou status ${response.statusCode}');

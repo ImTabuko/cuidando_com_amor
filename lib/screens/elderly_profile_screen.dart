@@ -19,6 +19,7 @@ class _ElderlyProfileScreenState extends State<ElderlyProfileScreen> {
   final AuthService _authService = AuthService();
   final PhotoService _photoService = PhotoService();
   bool _isLoading = false;
+  Match? _existingMatch;
 
   @override
   void initState() {
@@ -30,6 +31,17 @@ class _ElderlyProfileScreenState extends State<ElderlyProfileScreen> {
     // Recarregar dados do usuário para garantir que temos as informações mais atualizadas
     try {
       await _matchService.dataService.reloadUsersFromApi();
+      await _matchService.dataService.reloadMatchesFromApi();
+      
+      // Verificar se existe match entre o usuário atual e este idoso
+      final currentUser = _authService.currentUser;
+      if (currentUser is CaregiverUser) {
+        _existingMatch = _matchService.dataService.getExistingMatch(
+          widget.elderly.id,
+          currentUser.id,
+        );
+      }
+      
       // Atualizar o widget com os dados mais recentes
       if (mounted) {
         setState(() {});
@@ -147,17 +159,51 @@ class _ElderlyProfileScreenState extends State<ElderlyProfileScreen> {
       return const SizedBox.shrink();
     }
 
+    final currentUser = _authService.currentUser as CaregiverUser;
+    
+    // Verificar se já existe match aceito
+    final hasAccepted = _matchService.dataService.hasAcceptedMatch(
+      widget.elderly.id,
+      currentUser.id,
+    );
+    
+    if (hasAccepted) {
+      // Match já aceito, não mostrar botão
+      return Center(
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.green[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.green[300]!),
+          ),
+          child: Text(
+            'Match aceito! Vocês já estão conectados.',
+            style: TextStyle(
+              color: Colors.green[800],
+              fontSize: 16,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    
+    // Verificar se existe match rejeitado
+    final isRejected = _existingMatch?.status == MatchStatus.rejected;
+    final buttonText = isRejected ? 'Reenviar Oferta' : 'Oferecer Cuidados';
+
     return Center(
       child: ElevatedButton(
         onPressed: _isLoading ? null : _createMatch,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.green,
+          backgroundColor: isRejected ? Colors.orange : Colors.green,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-        child: const Text(
-          'Oferecer Cuidados',
-          style: TextStyle(fontSize: 16, color: Colors.white),
+        child: Text(
+          buttonText,
+          style: const TextStyle(fontSize: 16, color: Colors.white),
         ),
       ),
     );
