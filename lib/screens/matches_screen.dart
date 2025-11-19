@@ -4,6 +4,7 @@ import '../models/match.dart';
 import '../models/match_service.dart';
 import '../models/auth_service.dart';
 import '../services/accessibility_service.dart';
+import '../services/photo_service.dart';
 import '../widgets/accessible_text.dart';
 import 'elderly_profile_screen.dart';
 import 'caregiver_profile_screen.dart';
@@ -20,6 +21,7 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
   final MatchService _matchService = MatchService();
   final AuthService _authService = AuthService();
   final AccessibilityService _accessibilityService = AccessibilityService();
+  final PhotoService _photoService = PhotoService();
   late TabController _tabController;
   List<Match> _matches = [];
   bool _isLoading = true;
@@ -270,14 +272,10 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
+                _photoService.buildProfilePhoto(
+                  photoUrl: otherUser.photoUrl,
                   radius: _accessibilityService.isLargeTextEnabled ? 40 : 30,
-                  backgroundColor: Colors.blue[100],
-                  child: Icon(
-                    Icons.person,
-                    size: _accessibilityService.isLargeTextEnabled ? 40 : 30,
-                    color: Colors.blue[800],
-                  ),
+                  showEditIcon: false,
                 ),
                 SizedBox(width: _accessibilityService.defaultSpacing),
                 Expanded(
@@ -319,29 +317,31 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
     final isCaregiver = currentUser is CaregiverUser;
     
     // Determinar se o usuário atual pode aceitar/rejeitar o match
-    // Lógica: O match é criado por um cuidador oferecendo cuidados
-    // Então o idoso (elderlyId) é quem pode aceitar/rejeitar
-    // O cuidador (caregiverId) NUNCA pode aceitar - apenas aguarda a resposta
-    // Verificação rigorosa: apenas idoso que recebeu o match pode aceitar
-    // IMPORTANTE: O cuidador que criou o match (caregiverId) NUNCA pode aceitar
+    // REGRA FUNDAMENTAL: Apenas quem RECEBEU a solicitação pode aceitar/rejeitar
+    // Quem ENVIOU a solicitação NUNCA pode aceitar/rejeitar
     
-    // Verificar se o usuário atual é o idoso que recebeu o match
-    final isElderlyRecipient = isElderly && match.elderlyId == currentUser.id;
+    bool canAcceptMatch = false;
     
-    // Verificar se o usuário atual é o cuidador que criou o match
-    final isCaregiverCreator = isCaregiver && match.caregiverId == currentUser.id;
-    
-    // Só pode aceitar se for o idoso que recebeu E NÃO for o cuidador que criou
-    // Isso garante que mesmo que por algum motivo o ID esteja errado, o cuidador nunca pode aceitar
-    final canAcceptMatch = isElderlyRecipient && !isCaregiverCreator;
+    if (match.createdBy == MatchCreatedBy.elderly) {
+      // Idoso ENVIOU a solicitação (solicitou cuidados)
+      // Cuidador RECEBEU a solicitação -> cuidador pode aceitar/rejeitar
+      canAcceptMatch = isCaregiver && match.caregiverId == currentUser.id;
+    } else if (match.createdBy == MatchCreatedBy.caregiver) {
+      // Cuidador ENVIOU a solicitação (ofereceu cuidados)
+      // Idoso RECEBEU a solicitação -> idoso pode aceitar/rejeitar
+      canAcceptMatch = isElderly && match.elderlyId == currentUser.id;
+    } else {
+      // Fallback para matches antigos sem createdBy: assumir que cuidador enviou
+      // Então idoso recebeu e pode aceitar
+      canAcceptMatch = isElderly && match.elderlyId == currentUser.id;
+    }
     
     // Debug
     print('🔍 Match ${match.matchId}:');
     print('  - Current User ID: ${currentUser.id}');
     print('  - Is Elderly: $isElderly, Is Caregiver: $isCaregiver');
     print('  - Elderly ID: ${match.elderlyId}, Caregiver ID: ${match.caregiverId}');
-    print('  - Is Elderly Recipient: $isElderlyRecipient');
-    print('  - Is Caregiver Creator: $isCaregiverCreator');
+    print('  - Created By: ${match.createdBy}');
     print('  - Can Accept: $canAcceptMatch');
     
     // Para matches pendentes
@@ -486,25 +486,28 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
       return;
     }
     
-    // Verificação de segurança RIGOROSA: apenas o idoso que recebeu o match pode aceitar
+    // Verificação de segurança RIGOROSA: apenas quem RECEBEU a solicitação pode aceitar
     final isElderly = currentUser is ElderlyUser;
     final isCaregiver = currentUser is CaregiverUser;
     
-    // Verificar se é o idoso que recebeu o match
-    final isElderlyRecipient = isElderly && match.elderlyId == currentUser.id;
+    bool canAccept = false;
     
-    // Verificar se é o cuidador que criou o match (NUNCA pode aceitar)
-    final isCaregiverCreator = isCaregiver && match.caregiverId == currentUser.id;
-    
-    // Só pode aceitar se for o idoso que recebeu E não for o cuidador que criou
-    final canAccept = isElderlyRecipient && !isCaregiverCreator;
+    if (match.createdBy == MatchCreatedBy.elderly) {
+      // Idoso ENVIOU a solicitação -> cuidador RECEBEU -> apenas cuidador pode aceitar
+      canAccept = isCaregiver && match.caregiverId == currentUser.id;
+    } else if (match.createdBy == MatchCreatedBy.caregiver) {
+      // Cuidador ENVIOU a solicitação -> idoso RECEBEU -> apenas idoso pode aceitar
+      canAccept = isElderly && match.elderlyId == currentUser.id;
+    } else {
+      // Fallback para matches antigos: assumir que cuidador enviou, então idoso recebeu
+      canAccept = isElderly && match.elderlyId == currentUser.id;
+    }
     
     print('🔐 Tentativa de aceitar match ${match.matchId}:');
     print('  - User ID: ${currentUser.id}');
     print('  - Is Elderly: $isElderly, Is Caregiver: $isCaregiver');
     print('  - Elderly ID: ${match.elderlyId}, Caregiver ID: ${match.caregiverId}');
-    print('  - Is Elderly Recipient: $isElderlyRecipient');
-    print('  - Is Caregiver Creator: $isCaregiverCreator');
+    print('  - Created By: ${match.createdBy}');
     print('  - Can Accept: $canAccept');
     
     if (!canAccept) {
@@ -512,7 +515,7 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Você não pode aceitar este match. Apenas o idoso que recebeu o match pode aceitá-lo.'),
+            content: Text('Você não pode aceitar este match. Apenas quem recebeu o match pode aceitá-lo.'),
             duration: Duration(seconds: 3),
           ),
         );
@@ -535,24 +538,28 @@ class _MatchesScreenState extends State<MatchesScreen> with SingleTickerProvider
       return;
     }
     
-    // Verificação de segurança RIGOROSA: apenas o idoso que recebeu o match pode rejeitar
+    // Verificação de segurança RIGOROSA: apenas quem RECEBEU a solicitação pode rejeitar
     final isElderly = currentUser is ElderlyUser;
     final isCaregiver = currentUser is CaregiverUser;
     
-    // Verificar se é o idoso que recebeu o match
-    final isElderlyRecipient = isElderly && match.elderlyId == currentUser.id;
+    bool canReject = false;
     
-    // Verificar se é o cuidador que criou o match (NUNCA pode rejeitar)
-    final isCaregiverCreator = isCaregiver && match.caregiverId == currentUser.id;
-    
-    // Só pode rejeitar se for o idoso que recebeu E não for o cuidador que criou
-    final canReject = isElderlyRecipient && !isCaregiverCreator;
+    if (match.createdBy == MatchCreatedBy.elderly) {
+      // Idoso ENVIOU a solicitação -> cuidador RECEBEU -> apenas cuidador pode rejeitar
+      canReject = isCaregiver && match.caregiverId == currentUser.id;
+    } else if (match.createdBy == MatchCreatedBy.caregiver) {
+      // Cuidador ENVIOU a solicitação -> idoso RECEBEU -> apenas idoso pode rejeitar
+      canReject = isElderly && match.elderlyId == currentUser.id;
+    } else {
+      // Fallback para matches antigos: assumir que cuidador enviou, então idoso recebeu
+      canReject = isElderly && match.elderlyId == currentUser.id;
+    }
     
     if (!canReject) {
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Apenas o idoso que recebeu o match pode rejeitá-lo')),
+          const SnackBar(content: Text('Apenas quem recebeu o match pode rejeitá-lo')),
         );
       }
       return;

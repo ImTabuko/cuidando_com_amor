@@ -21,8 +21,9 @@ class MatchService {
   }
 
   // Criar um novo match entre um idoso e um cuidador
-  Future<Match> createMatch(String elderlyId, String caregiverId) async {
-    return _dataService.createMatch(elderlyId, caregiverId);
+  // createdBy indica quem está criando o match
+  Future<Match> createMatch(String elderlyId, String caregiverId, {MatchCreatedBy? createdBy}) async {
+    return _dataService.createMatch(elderlyId, caregiverId, createdBy: createdBy);
   }
 
   // Aceitar um match

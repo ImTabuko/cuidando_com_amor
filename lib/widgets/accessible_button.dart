@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/accessibility_service.dart';
 
-/// Botão acessível com suporte a leitores de tela e alto contraste
+/// Botão acessível com suporte a leitores de tela
 class AccessibleButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;

@@ -8,32 +8,27 @@ class AccessibilityService {
   AccessibilityService._internal();
 
   bool _isLargeTextEnabled = false;
-  bool _isHighContrastEnabled = false;
   bool _reduceMotionEnabled = false;
   bool _hapticFeedbackEnabled = true;
   bool _screenReaderEnabled = false;
 
   // Getters
   bool get isLargeTextEnabled => _isLargeTextEnabled;
-  bool get isHighContrastEnabled => _isHighContrastEnabled;
   bool get reduceMotionEnabled => _reduceMotionEnabled;
   bool get hapticFeedbackEnabled => _hapticFeedbackEnabled;
   bool get screenReaderEnabled => _screenReaderEnabled;
 
   // Detectar configurações do sistema (apenas leitor de tela e animações)
-  // Não sobrescreve configurações manuais de texto grande e alto contraste
+  // Não sobrescreve configurações manuais de texto grande
   void updateFromMediaQuery(MediaQueryData mediaQuery) {
     _reduceMotionEnabled = mediaQuery.disableAnimations;
     _screenReaderEnabled = mediaQuery.accessibleNavigation;
     
-    // Apenas atualizar texto grande e alto contraste se o usuário não configurou manualmente
+    // Apenas atualizar texto grande se o usuário não configurou manualmente
     // (isso é detectado se ainda está no valor padrão)
-    if (!_isLargeTextEnabled && !_isHighContrastEnabled) {
+    if (!_isLargeTextEnabled) {
       final textScaleFactor = mediaQuery.textScaleFactor;
-      final highContrast = mediaQuery.highContrast;
-      
       _isLargeTextEnabled = textScaleFactor > 1.0;
-      _isHighContrastEnabled = highContrast;
     }
     
     _notifyListeners();
@@ -120,29 +115,14 @@ class AccessibilityService {
   double get smallSpacing => _isLargeTextEnabled ? 16.0 : 8.0;
   double get largeSpacing => _isLargeTextEnabled ? 32.0 : 24.0;
 
-  // Cores para alto contraste
+  // Método mantido para compatibilidade (sempre retorna a cor padrão)
   Color getHighContrastColor(Color defaultColor, {Color? lightColor, Color? darkColor}) {
-    if (!_isHighContrastEnabled) return defaultColor;
-    
-    // Cores de alto contraste padrão
-    if (defaultColor.value == Colors.white.value) return Colors.white;
-    if (defaultColor.value == Colors.black.value) return Colors.black;
-    
-    // Para cores primárias, usar versão mais contrastante
-    return defaultColor.computeLuminance() > 0.5 
-        ? Colors.black 
-        : Colors.white;
+    return defaultColor;
   }
 
   // Toggle para ativar/desativar texto grande
   void toggleLargeText() {
     _isLargeTextEnabled = !_isLargeTextEnabled;
-    _notifyListeners();
-  }
-
-  // Toggle para alto contraste
-  void toggleHighContrast() {
-    _isHighContrastEnabled = !_isHighContrastEnabled;
     _notifyListeners();
   }
 

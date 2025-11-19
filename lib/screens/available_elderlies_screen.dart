@@ -161,15 +161,33 @@ class _AvailableElderliesScreenState extends State<AvailableElderliesScreen> {
   }
 
   Future<void> _viewElderlyProfile(ElderlyUser elderly) async {
+    // Recarregar dados antes de abrir o perfil para garantir informações atualizadas
+    try {
+      await _authService.getAvailableElderlies();
+    } catch (e) {
+      print('⚠️ Erro ao recarregar idosos: $e');
+    }
+    
+    // Buscar o idoso atualizado na lista
+    final updatedElderlies = await _authService.getAvailableElderlies();
+    final updatedElderly = updatedElderlies.where((e) => e.id == elderly.id).firstOrNull;
+    
+    if (updatedElderly == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Perfil não encontrado')),
+      );
+      return;
+    }
+    
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ElderlyProfileScreen(elderly: elderly),
+        builder: (context) => ElderlyProfileScreen(elderly: updatedElderly),
       ),
     );
 
     // Se retornar com resultado positivo (match criado), atualizar a lista
-    if (result == true) {
+    if (result == true || mounted) {
       _loadAvailableElderlies();
     }
   }

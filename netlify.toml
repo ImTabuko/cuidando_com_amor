@@ -2,22 +2,20 @@
 # 
 # IMPORTANTE: O Netlify não tem Flutter instalado por padrão
 # 
-# OPÇÃO 1: Build Local + Netlify Drop (Recomendado)
-# 1. Execute: flutter build web --release
+# OPÇÃO 1: Build Local + Netlify Drop (Recomendado - Mais Rápido)
+# 1. Execute: cd cuidando_com_amor && flutter build web --release
 # 2. Acesse: https://app.netlify.com/drop
-# 3. Arraste a pasta build/web
+# 3. Arraste a pasta cuidando_com_amor/build/web
 #
-# OPÇÃO 2: Build Automático (requer Flutter no Netlify via build image)
+# OPÇÃO 2: Build Automático (usa script que instala Flutter)
 # Configure no painel do Netlify:
-# - Base directory: (raiz do repositório)
-# - Build command: cd cuidando_com_amor && flutter pub get && flutter build web --release
+# - Base directory: (raiz do repositório - deixe vazio)
+# - Build command: bash .netlify-build.sh
 # - Publish directory: cuidando_com_amor/build/web
 # - Environment variables: Nenhuma necessária
 
 [build]
-  # Para build automático, descomente a linha abaixo e configure no painel do Netlify
-  # command = "cd cuidando_com_amor && flutter pub get && flutter build web --release"
-  # Publish directory relativo à raiz do repositório
+  command = "bash .netlify-build.sh"
   publish = "cuidando_com_amor/build/web"
   
   # Configurações de ambiente (se necessário)

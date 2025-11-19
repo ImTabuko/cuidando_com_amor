@@ -81,26 +81,6 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
           ),
           
           SizedBox(height: _accessibilityService.smallSpacing),
-          
-          // Alto Contraste
-          AccessibleCard(
-            semanticLabel: 'Ativar alto contraste',
-            hint: 'Aumenta o contraste das cores para melhor visibilidade',
-            child: SwitchListTile(
-              title: const BodyText('Alto Contraste'),
-              subtitle: const HintText(
-                'Aumenta o contraste entre texto e fundo',
-                color: Colors.grey,
-              ),
-              value: _accessibilityService.isHighContrastEnabled,
-              onChanged: (value) {
-                _accessibilityService.mediumImpact();
-                _accessibilityService.toggleHighContrast();
-              },
-            ),
-          ),
-
-          SizedBox(height: _accessibilityService.smallSpacing),
 
           // Feedback Tátil
           AccessibleCard(
@@ -149,10 +129,6 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
                     ),
                     SizedBox(height: _accessibilityService.smallSpacing),
                     BodyText(
-                      'Alto Contraste: ${_accessibilityService.isHighContrastEnabled || mediaQuery.highContrast ? "Ativado" : "Desativado"}',
-                    ),
-                    SizedBox(height: _accessibilityService.smallSpacing),
-                    BodyText(
                       'Animações Reduzidas: ${mediaQuery.disableAnimations ? "Ativado" : "Desativado"}',
                     ),
                     SizedBox(height: _accessibilityService.smallSpacing),
@@ -196,11 +172,6 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
                 SizedBox(height: _accessibilityService.smallSpacing),
                 BodyText(
                   '• Áreas de toque: Todos os botões têm área mínima de toque de 48x48 pixels',
-                  fontWeight: FontWeight.w500,
-                ),
-                SizedBox(height: _accessibilityService.smallSpacing),
-                BodyText(
-                  '• Contraste: O aplicativo respeita as configurações de alto contraste do sistema',
                   fontWeight: FontWeight.w500,
                 ),
                 SizedBox(height: _accessibilityService.smallSpacing),

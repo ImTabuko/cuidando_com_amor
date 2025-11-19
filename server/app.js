@@ -61,6 +61,7 @@ const User = mongoose.model('User', userSchema);
 const matchSchema = new mongoose.Schema({
   elderlyId: String,
   caregiverId: String,
+  createdBy: { type: String, enum: ['elderly', 'caregiver'] }, // Quem criou o match
   status: { type: String, enum: ['pending', 'accepted', 'rejected'] },
   createdAt: { type: Date, default: Date.now }
 });
@@ -271,7 +272,13 @@ app.post('/api/matches', async (req, res) => {
       return res.json(existingMatch);
     }
     
-    const newMatch = new Match(req.body);
+    // Criar match com informação de quem criou
+    const matchData = {
+      ...req.body,
+      createdBy: req.body.createdBy || 'caregiver' // Default para manter compatibilidade
+    };
+    
+    const newMatch = new Match(matchData);
     await newMatch.save();
     res.status(201).json(newMatch);
   } catch (error) {

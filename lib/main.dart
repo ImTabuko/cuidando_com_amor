@@ -42,7 +42,7 @@ class MainApp extends StatelessWidget {
           data: mediaQuery.copyWith(
             textScaleFactor: finalScale.clamp(1.0, 2.5),
             boldText: mediaQuery.boldText,
-            highContrast: accessibilityService.isHighContrastEnabled || mediaQuery.highContrast,
+            highContrast: mediaQuery.highContrast,
           ),
           child: Semantics(
             // Configurações globais de Semantics

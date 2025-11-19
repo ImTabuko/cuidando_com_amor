@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
+import '../models/match.dart';
 import '../models/match_service.dart';
 import '../models/auth_service.dart';
 import '../services/accessibility_service.dart';
@@ -26,6 +27,20 @@ class _CaregiverProfileScreenState extends State<CaregiverProfileScreen> {
   void initState() {
     super.initState();
     _accessibilityService.addListener(_updateState);
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    // Recarregar dados do usuário para garantir que temos as informações mais atualizadas
+    try {
+      await _matchService.dataService.reloadUsersFromApi();
+      // Atualizar o widget com os dados mais recentes
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      print('⚠️ Erro ao recarregar dados do perfil: $e');
+    }
   }
 
   @override
@@ -45,7 +60,7 @@ class _CaregiverProfileScreenState extends State<CaregiverProfileScreen> {
         automaticallyImplyLeading: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
+          onPressed: () => Navigator.pop(context),
         ),
         title: TitleText('Perfil do Cuidador', color: Colors.white),
         backgroundColor: Colors.blue[800],
@@ -176,7 +191,7 @@ class _CaregiverProfileScreenState extends State<CaregiverProfileScreen> {
     });
 
     try {
-      await _matchService.createMatch(elderly.id, widget.caregiver.id);
+      await _matchService.createMatch(elderly.id, widget.caregiver.id, createdBy: MatchCreatedBy.elderly);
       
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();

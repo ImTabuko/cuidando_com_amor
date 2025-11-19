@@ -169,15 +169,33 @@ class _AvailableCaregiversScreenState extends State<AvailableCaregiversScreen> {
   }
 
   Future<void> _viewCaregiverProfile(CaregiverUser caregiver) async {
+    // Recarregar dados antes de abrir o perfil para garantir informações atualizadas
+    try {
+      await _authService.getAvailableCaregivers();
+    } catch (e) {
+      print('⚠️ Erro ao recarregar cuidadores: $e');
+    }
+    
+    // Buscar o cuidador atualizado na lista
+    final updatedCaregivers = await _authService.getAvailableCaregivers();
+    final updatedCaregiver = updatedCaregivers.where((c) => c.id == caregiver.id).firstOrNull;
+    
+    if (updatedCaregiver == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Perfil não encontrado')),
+      );
+      return;
+    }
+    
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CaregiverProfileScreen(caregiver: caregiver),
+        builder: (context) => CaregiverProfileScreen(caregiver: updatedCaregiver),
       ),
     );
 
     // Se retornar com resultado positivo (match criado), atualizar a lista
-    if (result == true) {
+    if (result == true || mounted) {
       _loadAvailableCaregivers();
     }
   }

@@ -173,13 +173,25 @@ class DataService {
           final elderlyId = (item['elderlyId'] ?? '').toString();
           final caregiverId = (item['caregiverId'] ?? '').toString();
           
-          print('  - Match: $matchId, Elderly: $elderlyId, Caregiver: $caregiverId, Status: $status');
+          // Converter createdBy do backend
+          MatchCreatedBy? matchCreatedBy;
+          final createdByStr = item['createdBy']?.toString();
+          if (createdByStr == 'elderly') {
+            matchCreatedBy = MatchCreatedBy.elderly;
+          } else if (createdByStr == 'caregiver') {
+            matchCreatedBy = MatchCreatedBy.caregiver;
+          }
+          
+          print('  - Match: $matchId, Elderly: $elderlyId, Caregiver: $caregiverId, Status: $status, CreatedBy: $matchCreatedBy');
           
           // Usar match existente se disponível, senão criar novo
           final existingMatch = existingMatchesMap[matchId];
           if (existingMatch != null) {
             // Atualizar status do match existente
             existingMatch.status = status;
+            if (matchCreatedBy != null) {
+              existingMatch.createdBy = matchCreatedBy;
+            }
             _matches.add(existingMatch);
           } else {
             _matches.add(Match(
@@ -188,6 +200,7 @@ class DataService {
               caregiverId: caregiverId,
               status: status,
               dataMatch: DateTime.tryParse(item['createdAt']?.toString() ?? '') ?? DateTime.now(),
+              createdBy: matchCreatedBy,
             ));
           }
         }
@@ -555,10 +568,10 @@ class DataService {
     ).toList();
   }
 
-  Future<Match> createMatch(String elderlyId, String caregiverId) async {
+  Future<Match> createMatch(String elderlyId, String caregiverId, {MatchCreatedBy? createdBy}) async {
     // Tentar criar no backend PRIMEIRO (backend verifica duplicatas)
     try {
-      print('📤 Criando match no backend: Elderly=$elderlyId, Caregiver=$caregiverId');
+      print('📤 Criando match no backend: Elderly=$elderlyId, Caregiver=$caregiverId, CreatedBy=${createdBy?.toString()}');
       final response = await http.post(
         Uri.parse('$_baseUrl/matches'),
         headers: {'Content-Type': 'application/json'},
@@ -566,6 +579,7 @@ class DataService {
           'elderlyId': elderlyId,
           'caregiverId': caregiverId,
           'status': 'pending',
+          'createdBy': createdBy?.toString().split('.').last ?? 'caregiver', // 'elderly' ou 'caregiver'
         }),
       ).timeout(const Duration(seconds: 10));
       
@@ -588,11 +602,23 @@ class DataService {
         
         final matchId = (data['_id'] ?? data['id'] ?? '').toString();
         
+        // Converter createdBy do backend
+        MatchCreatedBy? matchCreatedBy;
+        final createdByStr = data['createdBy']?.toString();
+        if (createdByStr == 'elderly') {
+          matchCreatedBy = MatchCreatedBy.elderly;
+        } else if (createdByStr == 'caregiver') {
+          matchCreatedBy = MatchCreatedBy.caregiver;
+        }
+        
         // Verificar se já existe localmente
         final existingMatchIndex = _matches.indexWhere((m) => m.matchId == matchId);
         if (existingMatchIndex != -1) {
           // Atualizar status do match existente
           _matches[existingMatchIndex].status = status;
+          if (matchCreatedBy != null) {
+            _matches[existingMatchIndex].createdBy = matchCreatedBy;
+          }
           return _matches[existingMatchIndex];
         } else {
           // Match não existe localmente, criar novo
@@ -602,6 +628,7 @@ class DataService {
             caregiverId: caregiverId,
             status: status,
             dataMatch: DateTime.tryParse(data['createdAt']?.toString() ?? '') ?? DateTime.now(),
+            createdBy: matchCreatedBy ?? createdBy, // Usar do backend ou do parâmetro
           );
           _matches.add(backendMatch);
           return backendMatch;
@@ -629,6 +656,7 @@ class DataService {
           caregiverId: caregiverId,
           status: MatchStatus.pending,
           dataMatch: DateTime.now(),
+          createdBy: createdBy,
         );
         print('💾 Adicionando match localmente: ${match.matchId}');
         _matches.add(match);
