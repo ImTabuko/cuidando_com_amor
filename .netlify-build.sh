@@ -12,9 +12,6 @@ export PATH="$PATH:`pwd`/flutter/bin"
 # Verificar instalação
 flutter --version
 
-# Navegar para o diretório do projeto
-cd cuidando_com_amor
-
 # Obter dependências
 echo "📚 Obtendo dependências..."
 flutter pub get
@@ -24,5 +21,7 @@ echo "🔨 Construindo para web..."
 flutter build web --release
 
 echo "✅ Build concluído com sucesso!"
+
+
 
 

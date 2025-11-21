@@ -60,7 +60,14 @@ class DataService {
       final body = json.decode(res.body);
       final List data = body is Map && body['items'] is List ? body['items'] : (body as List);
       
-      // Criar mapa de usuários existentes por ID para evitar duplicação
+      // Salvar referência do usuário atual antes de limpar
+      final currentUserId = _currentUser?.id;
+      
+      // Criar nova lista temporária para evitar duplicatas
+      final newUsers = <User>[];
+      final processedUserIds = <String>{};
+      
+      // Primeiro, adicionar usuários existentes que não estão na API (preservar dados locais)
       final existingUsersMap = <String, User>{};
       for (final user in _users) {
         existingUsersMap[user.id] = user;
@@ -71,22 +78,30 @@ class DataService {
         final userId = (item['_id'] ?? item['id'] ?? '').toString();
         if (userId.isEmpty) continue; // Pular se não tiver ID
         
+        // Verificar se já processamos este ID nesta resposta da API (evitar duplicatas na própria API)
+        if (processedUserIds.contains(userId)) {
+          print('⚠️ Usuário duplicado na resposta da API: $userId');
+          continue; // Pular duplicatas na própria resposta
+        }
+        processedUserIds.add(userId);
+        
         final type = (item['userType'] ?? '').toString();
         final photoUrl = item['photoUrl']?.toString();
         
-        // Se o usuário já existe, atualizar (especialmente photoUrl)
+        // Se o usuário já existe na lista antiga, atualizar e mover para nova lista
         if (existingUsersMap.containsKey(userId)) {
           final existingUser = existingUsersMap[userId]!;
           // Atualizar photoUrl se fornecido
           if (photoUrl != null && photoUrl.isNotEmpty) {
             existingUser.photoUrl = photoUrl;
           }
+          newUsers.add(existingUser);
           continue; // Pular criação, já existe
         }
         
         // Criar novo usuário apenas se não existir
         if (type == 'caregiver') {
-          _users.add(CaregiverUser(
+          newUsers.add(CaregiverUser(
             id: userId,
             fullName: (item['fullName'] ?? 'Sem nome').toString(),
             street: (item['street'] ?? '').toString(),
@@ -102,7 +117,7 @@ class DataService {
             photoUrl: photoUrl,
           ));
         } else if (type == 'elderly') {
-          _users.add(ElderlyUser(
+          newUsers.add(ElderlyUser(
             id: userId,
             fullName: (item['fullName'] ?? 'Sem nome').toString(),
             street: (item['street'] ?? '').toString(),
@@ -121,6 +136,17 @@ class DataService {
           ));
         }
       }
+      
+      // Substituir lista antiga pela nova (sem duplicatas)
+      _users.clear();
+      _users.addAll(newUsers);
+      
+      // Restaurar referência do usuário atual se ainda existir
+      if (currentUserId != null) {
+        _currentUser = _users.where((u) => u.id == currentUserId).firstOrNull;
+      }
+      
+      print('✅ Usuários carregados: ${_users.length} (sem duplicatas)');
     } catch (e) {
       // Se falhar, continua sem dados do servidor (modo offline)
       print('Erro ao carregar usuários: $e');
@@ -488,8 +514,17 @@ class DataService {
     // Se não há usuário logado, retornar lista vazia
     if (_currentUser == null) return [];
     
+    // Remover duplicatas por ID antes de filtrar
+    final uniqueCaregivers = <String, CaregiverUser>{};
+    for (final caregiver in allCaregivers) {
+      if (!uniqueCaregivers.containsKey(caregiver.id)) {
+        uniqueCaregivers[caregiver.id] = caregiver;
+      }
+    }
+    final deduplicatedCaregivers = uniqueCaregivers.values.toList();
+    
     // Filtrar para não mostrar o próprio usuário
-    final filteredCaregivers = allCaregivers.where((caregiver) => 
+    final filteredCaregivers = deduplicatedCaregivers.where((caregiver) => 
       caregiver.id != _currentUser!.id
     ).toList();
     
@@ -526,8 +561,17 @@ class DataService {
     // Se não há usuário logado, retornar lista vazia
     if (_currentUser == null) return [];
     
+    // Remover duplicatas por ID antes de filtrar
+    final uniqueElderlies = <String, ElderlyUser>{};
+    for (final elderly in allElderlies) {
+      if (!uniqueElderlies.containsKey(elderly.id)) {
+        uniqueElderlies[elderly.id] = elderly;
+      }
+    }
+    final deduplicatedElderlies = uniqueElderlies.values.toList();
+    
     // Filtrar para não mostrar o próprio usuário
-    final filteredElderlies = allElderlies.where((elderly) => 
+    final filteredElderlies = deduplicatedElderlies.where((elderly) => 
       elderly.id != _currentUser!.id
     ).toList();
     

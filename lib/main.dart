@@ -6,13 +6,8 @@ import 'screens/home_screen.dart';
 import 'screens/available_caregivers_screen.dart';
 import 'screens/available_elderlies_screen.dart';
 import 'screens/matches_screen.dart';
-import 'services/data_service.dart';
-import 'services/accessibility_service.dart';
 
 void main() {
-  // Inicializar em background sem bloquear
-  DataService().initialize().catchError((e) => null);
-  
   runApp(const MainApp());
 }
 
@@ -26,23 +21,12 @@ class MainApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       // Configurações de acessibilidade
       builder: (context, child) {
-        final mediaQuery = MediaQuery.of(context);
-        final accessibilityService = AccessibilityService();
-        
-        // Atualizar apenas leitor de tela e animações (não afeta configurações manuais)
-        accessibilityService.updateSystemOnly(mediaQuery);
-        
-        // Aplicar escala de texto manual OU do sistema (o que for maior)
-        final userScale = accessibilityService.isLargeTextEnabled ? 1.3 : 1.0;
-        final systemScale = mediaQuery.textScaleFactor;
-        final finalScale = userScale > systemScale ? userScale : systemScale;
-        
         return MediaQuery(
-          // Respeitar configurações de acessibilidade do sistema E manuais
-          data: mediaQuery.copyWith(
-            textScaleFactor: finalScale.clamp(1.0, 2.5),
-            boldText: mediaQuery.boldText,
-            highContrast: mediaQuery.highContrast,
+          // Respeitar configurações de acessibilidade do sistema
+          data: MediaQuery.of(context).copyWith(
+            textScaleFactor: MediaQuery.of(context).textScaleFactor.clamp(1.0, 2.0),
+            boldText: MediaQuery.of(context).boldText,
+            highContrast: MediaQuery.of(context).highContrast,
           ),
           child: Semantics(
             // Configurações globais de Semantics

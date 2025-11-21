@@ -9,14 +9,14 @@
 #
 # OPÇÃO 2: Build Automático (usa script que instala Flutter)
 # Configure no painel do Netlify:
-# - Base directory: (raiz do repositório - deixe vazio)
+# - Base directory: cuidando_com_amor (se netlify.toml estiver na raiz) ou deixe vazio (se estiver dentro de cuidando_com_amor)
 # - Build command: bash .netlify-build.sh
-# - Publish directory: cuidando_com_amor/build/web
+# - Publish directory: build/web
 # - Environment variables: Nenhuma necessária
 
 [build]
   command = "bash .netlify-build.sh"
-  publish = "cuidando_com_amor/build/web"
+  publish = "build/web"
   
   # Configurações de ambiente (se necessário)
   # [build.environment]
