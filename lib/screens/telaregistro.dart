@@ -691,6 +691,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         firstDate: DateTime(1900),
                         lastDate: DateTime(DateTime.now().year - 60, 12, 31),
                         helpText: 'Selecione sua data de nascimento',
+                        locale: const Locale('pt', 'BR'),
                       );
                       if (picked != null && picked != _elderlyBirthDate) {
                         setState(() {
@@ -1054,6 +1055,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         firstDate: DateTime(1900),
                         lastDate: DateTime(DateTime.now().year - 18, 12, 31),
                         helpText: 'Selecione sua data de nascimento',
+                        locale: const Locale('pt', 'BR'),
                       );
                       if (picked != null && picked != _caregiverBirthDate) {
                         setState(() {

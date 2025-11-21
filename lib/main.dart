@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/splash_screen.dart';
 import 'screens/telalogin.dart';
 import 'screens/telaregistro.dart';
@@ -19,6 +20,16 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       title: 'Cuidando com Amor',
       debugShowCheckedModeBanner: false,
+      locale: const Locale('pt', 'BR'),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('pt', 'BR'),
+        Locale('en', 'US'),
+      ],
       // Configurações de acessibilidade
       builder: (context, child) {
         return MediaQuery(
