@@ -4,6 +4,7 @@ import '../models/match.dart';
 import '../models/match_service.dart';
 import '../models/auth_service.dart';
 import '../services/photo_service.dart';
+import '../utils/app_colors.dart';
 
 class ElderlyProfileScreen extends StatefulWidget {
   final ElderlyUser elderly;
@@ -61,7 +62,7 @@ class _ElderlyProfileScreenState extends State<ElderlyProfileScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Perfil do Idoso', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.blue[800],
+        backgroundColor: AppColors.primary,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

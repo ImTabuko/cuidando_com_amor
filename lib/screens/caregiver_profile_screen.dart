@@ -6,6 +6,7 @@ import '../models/auth_service.dart';
 import '../services/accessibility_service.dart';
 import '../services/photo_service.dart';
 import '../widgets/accessible_text.dart';
+import '../utils/app_colors.dart';
 
 class CaregiverProfileScreen extends StatefulWidget {
   final CaregiverUser caregiver;
@@ -75,7 +76,7 @@ class _CaregiverProfileScreenState extends State<CaregiverProfileScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: TitleText('Perfil do Cuidador', color: Colors.white),
-        backgroundColor: Colors.blue[800],
+        backgroundColor: AppColors.primary,
       ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
