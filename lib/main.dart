@@ -7,6 +7,7 @@ import 'screens/home_screen.dart';
 import 'screens/available_caregivers_screen.dart';
 import 'screens/available_elderlies_screen.dart';
 import 'screens/matches_screen.dart';
+import 'utils/app_colors.dart';
 
 void main() {
   runApp(const MainApp());
@@ -47,10 +48,10 @@ class MainApp extends StatelessWidget {
         );
       },
       theme: ThemeData(
-        primarySwatch: Colors.brown,
-        primaryColor: const Color(0xFF8B7355), // Marrom taupe
+        primarySwatch: Colors.green,
+        primaryColor: AppColors.primary,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF8B7355), // Marrom taupe
+          seedColor: AppColors.primary,
           brightness: Brightness.light,
         ),
         useMaterial3: true,
